@@ -59,3 +59,6 @@ class AttModel(object):
         self.encoder.initalize(**kwargs)
         self.decoder.initalize(**kwargs)
     
+    def hybridlize(self, **kwargs):
+        self.encoder.hybridlize(**kwargs)
+        self.decoder.hybridlize(**kwargs)

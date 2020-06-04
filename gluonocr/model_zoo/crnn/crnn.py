@@ -2,22 +2,7 @@
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
-
-class STN(nn.HybridBlock):
-    def __init__(self, hidden_size=32, **kwargs):
-        super(STN, self).__init__(**kwargs)
-        with self.name_scope():
-            self.loc = nn.HybridSequential()
-            self.loc.add(nn.Conv2D(hidden_size, 3, strides=1, padding=1))
-            self.loc.add(nn.Activation('relu'))
-            self.loc.add(nn.Conv2D(2, 3, strides=1, padding=1))
-            self.loc.add(nn.Activation('tanh'))
-
-    def hybrid_forward(self, F, x):
-        warp_matrix = self.loc(x)
-        grid = F.GridGenerator(warp_matrix, transform_type='warp')
-        out = F.BilinearSampler(x, grid)
-        return out
+from ..nn import STN
 
 class CRNN(nn.HybridBlock):
     def __init__(self,
@@ -38,7 +23,7 @@ class CRNN(nn.HybridBlock):
                 self.stn = STN()
         self.lstm = gluon.rnn.LSTM(hidden_size, num_layers, layout='NTC',
                                    dropout=dropout, bidirectional=use_bilstm)
-        self.fc = nn.Dense(voc_size, flatten=False)
+        self.fc   = nn.Dense(voc_size, flatten=False)
 
     def hybrid_forward(self, F, x):
         if self.use_stn:

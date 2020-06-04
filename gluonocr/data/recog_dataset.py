@@ -14,7 +14,6 @@ transform_fn = transforms.Compose([
                          std=(0.229, 0.224, 0.225))
 ])
 
-
 class CTCFixSizeDataset(Dataset):
     def __init__(self, line_path, voc_path, augmnet_fn=None, short_side=32, fix_width=256, max_len=60):
 
@@ -32,7 +31,7 @@ class CTCFixSizeDataset(Dataset):
             line_list = fi.readlines()
         idx = 0
         for line in line_list:
-            word = line.strip('\n')[0]
+            word = line.strip()[0]
             word2id_dict[word] = idx
             idx = idx + 1
         return word2id_dict

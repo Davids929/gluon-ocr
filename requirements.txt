@@ -1,0 +1,8 @@
+opencv-python>=4.0
+scipy
+shapely
+pyclipper
+editdistance
+scikit-image
+imgaug
+gluoncv==0.6.0

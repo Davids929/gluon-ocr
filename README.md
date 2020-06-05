@@ -1,2 +1,7 @@
-# gluon-ocr
-A OCR project for text detection and recognition using MXNet
+# Gluon OCR 
+GluonOCR provides implementations of deep learning models in text detection and recognition.
+
+# Supported Applications
+
+
+# Reference

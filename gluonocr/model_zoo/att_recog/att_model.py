@@ -52,8 +52,8 @@ class AttModel(object):
             return self.test(*args)
     
     def export(self, path, **kwargs):
-        self.encoder.export(path+'-encoder', **kwargs)
-        self.decoder.export(path+'-decoder', **kwargs)
+        self.encoder.export(path + '-encoder', **kwargs)
+        self.decoder.export(path + '-decoder', **kwargs)
 
     def initalize(self, **kwargs):
         self.encoder.initalize(**kwargs)

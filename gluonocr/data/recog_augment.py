@@ -1,7 +1,7 @@
 #coding=utf-8
 import numpy as np
 import imgaug.augmenters as iaa
-
+import random
 class Augmenter(object):
     def __init__(self, configs):
         if configs == []:
@@ -28,3 +28,13 @@ class Augmenter(object):
                    ]
         seq = iaa.Sequential(seqence, random_order=True)
         return seq
+
+class SynthLines(object):
+    def __init__(self, short_side=32, ):
+        self.short_side = short_side
+
+    def __call__(self, ):
+        pass
+
+    def synth_lines(self, nums=10000):
+        pass

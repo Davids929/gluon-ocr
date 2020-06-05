@@ -11,7 +11,7 @@ class Attencoder(nn.HybridBlock):
                  num_layers=2,
                  match_dim=512,
                  dropout=0.1, 
-                 rnn_type='lstm', 
+                 rnn_type='lstm',
                  **kwargs)
 
         super(Attencoder, self).__init__(**kwargs)

@@ -5,11 +5,10 @@ from mxnet.gluon import nn
 
 class DBNet(gluon.HybridBlock):
     def __init__(self, stages, inner_channels=256, k=10, use_bias=False, 
-                 adaptive=False,smooth=False, serial=False, **kwargs):
+                 adaptive=False, norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
         super(DBNet, self).__init__(**kwargs)
     
         self.k = k
-        self.serial = serial
         self.adaptive = adaptive
         with self.name_scope():
             self.stages = nn.HybridSequential()
@@ -23,20 +22,20 @@ class DBNet(gluon.HybridBlock):
             self.binarize = nn.HybridSequential()
 
             self.binarize.add(nn.Conv2D(inner_channels//4, 3, padding=1, use_bias=use_bias))
-            self.binarize.add(nn.BatchNorm())
+            self.binarize.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
             self.binarize.add(nn.Activation('relu'))
             self.binarize.add(nn.Conv2DTranspose(inner_channels//4, 2, 2))
-            self.binarize.add(nn.BatchNorm())
+            self.binarize.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
             self.binarize.add(nn.Activation('relu'))
             self.binarize.add(nn.Conv2DTranspose(1, 2, 2))
             self.binarize.add(nn.Activation('sigmoid'))
             if adaptive:
                 self.thresh = nn.HybridSequential()
                 self.thresh.add(nn.Conv2D(inner_channels//4, 3, padding=1, use_bias=use_bias))
-                self.thresh.add(nn.BatchNorm())
+                self.thresh.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
                 self.thresh.add(nn.Activation('relu'))
                 self.thresh.add(nn.Conv2DTranspose(inner_channels//4, 2, 2))
-                self.thresh.add(nn.BatchNorm())
+                self.thresh.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
                 self.thresh.add(nn.Activation('relu'))
                 self.thresh.add(nn.Conv2DTranspose(1, 2, 2))
                 self.thresh.add(nn.Activation('sigmoid'))

@@ -7,9 +7,9 @@ from .att_encoder import *
 from .att_decoder import *
 
 class AttModel(object):
-    def __init__(self, encoder_fn, encoder_kwargs, decoder_fn, decoder_kwargs):
-        self.encoder = encoder_fn(**encoder_kwargs)
-        self.decoder = decoder_fn(**decoder_kwargs)
+    def __init__(self, encoder_kwargs, decoder_kwargs):
+        self.encoder = get_encoder(**encoder_kwargs)
+        self.decoder = AttDecoder(**decoder_kwargs)
 
     def train(self, x, mask, tag_input):
         en_out, en_proj = self.encoder(x, mask)

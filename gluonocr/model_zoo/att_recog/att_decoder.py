@@ -4,10 +4,7 @@ from mxnet import gluon, nd
 from mxnet.gluon import nn
 
 class BaseAttention(nn.HybridBlock):
-    def __init__(self, 
-                 match_dim=512, 
-                 dropout=0.1, 
-                 **kwargs):
+    def __init__(self, match_dim=512, dropout=0.1, **kwargs):
         super(BaseAttention, self).__init__(**kwargs)
         with self.name_scope():
             self.inp_dense = nn.Dense(match_dim, activation='tanh', flatten=False)
@@ -28,14 +25,8 @@ class BaseAttention(nn.HybridBlock):
         return output
 
 class AttDecoder(nn.HybridBlock):
-    def __init__(self, 
-                 hidden_dim=256, 
-                 embed_dim=512, 
-                 match_dim=512, 
-                 voc_size=5994, 
-                 num_layers=2, 
-                 dropout=0.1, 
-                 bilstm=False,
+    def __init__(self, embed_dim=512, match_dim=512, hidden_dim=256, 
+                 voc_size=37, num_layers=2, dropout=0.1, bilstm=False,
                  **kwargs):
 
         super(AttDecoder, self).__init__(**kwargs)

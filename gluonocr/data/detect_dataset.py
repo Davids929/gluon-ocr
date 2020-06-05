@@ -10,12 +10,10 @@ from .make_seg_data import MakeSegDetectorData, MakeBorderMap
 from .detect_augment import PointAugmenter
 
 class DBDataset(Dataset):
-    def __init__(self, img_dir, lab_dir, augment_fns=None, 
-                img_size=(640, 640), min_text_size=8, shrink_ratio=0.4,
-                mode='train', debug=False):
+    def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
+                 min_text_size=8, shrink_ratio=0.4, debug=False):
         self.img_dir = img_dir
         self.lab_dir = lab_dir
-        self.mode    = mode
         self.debug   = debug
         self.img_size    = img_size
         self.augment_fns = augment_fns

@@ -552,6 +552,7 @@ def get_resnet(version, num_layers, used='detect', pretrained=False, ctx=cpu(),
     block_class = resnet_block_versions[version-1][block_type]
     if used == 'recog':
         strides = [(1,1), (2,2), (2,1), (2,1)]
+    else:
         strides = [(1,1), (2,2), (2,2), (2,2)]
     net = resnet_class(block_class, layers, channels, strides, use_se=use_se, **kwargs)
     if pretrained:

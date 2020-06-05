@@ -7,10 +7,10 @@ import numpy as np
 import mxnet as mx
 from mxnet.gluon.data import Dataset
 from . import normalize_fn
+
 class FixSizeDataset(Dataset):
-    def __init__(self, line_path, voc_path, augmnet_fn=None, 
-                 short_side=32, fix_width=256, max_len=60,
-                 start_sym=0, end_sym=1):
+    def __init__(self, line_path, voc_path, augmnet_fn=None, short_side=32, 
+                 fix_width=256, max_len=60, start_sym=0, end_sym=1):
 
         self.short_side  = short_side
         self.fix_width   = fix_width
@@ -47,7 +47,6 @@ class FixSizeDataset(Dataset):
             line_path = [line_path]
         for path in line_path:
             with open(path, 'r', encoding='utf-8') as fi:
-                #line_list = fi.readlines()
                 for i, line in enumerate(fi):
                     lst = line.strip().split('\t')
                     if len(lst) < 2:
@@ -138,17 +137,9 @@ class FixSizeDataset(Dataset):
 
 
 class BucketDataset(FixSizeDataset):
-    def __init_(self, 
-                line_path, 
-                voc_path, 
-                augmnet_fn=None, 
-                short_side=32, 
-                fix_width=None, 
-                max_len=60,
-                split_width_len=128,
-                split_text_len=10,
-                start_sym=0, 
-                end_sym=1):
+    def __init_(self, line_path, voc_path, augmnet_fn=None, short_side=32, 
+                fix_width=None, max_len=60, start_sym=0, end_sym=1, 
+                split_width_len=128, split_text_len=10,):
     
         super(BucketDataset, self).__init__(line_path, voc_path, augmnet_fn=augmnet_fn, 
                                             short_side=short_side, fix_width=None, max_len=max_len,

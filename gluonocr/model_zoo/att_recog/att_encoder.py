@@ -3,15 +3,9 @@ import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
 
-
 class Attencoder(nn.HybridBlock):
-    def __init__(self, 
-                 stages, 
-                 hidden_dim=256, 
-                 num_layers=2,
-                 match_dim=512,
-                 dropout=0.1, 
-                 rnn_type='lstm',
+    def __init__(self, stages, hidden_dim=256, num_layers=2,
+                 match_dim=512, dropout=0.1, rnn_type='lstm',
                  **kwargs)
 
         super(Attencoder, self).__init__(**kwargs)
@@ -36,16 +30,20 @@ class Attencoder(nn.HybridBlock):
         out_proj = self.pre_compute(output)
         return output, out_proj
 
-def resnet_encoder(num_layers, base_kwargs, encode_kwargs):
+def get_encoder(backbone_name, num_layers, base_kwargs, encode_kwargs):
     from ..resnet import get_resnet
-    base_net = get_resnet(1, num_layers, used='recog', **base_kwargs)
-    backbone = base_net[:-4]
-    encoder = Attencoder(backbone, **encode_kwargs)
-    return encoder
-
-def vgg_encoder(num_layers, base_kwargs, encode_kwargs):
     from ..vgg import get_vgg
-    base_net = get_vgg(num_layers, used='recog', **base_kwargs)
-    backbone = base_net[:-4]
+    from ..mobilenetv3 import get_mobilenet_v3
+    if backbone_name.lower() == 'resnet':
+        base_net = get_resnet(1, num_layers, used='recog', **base_kwargs)
+        backbone = base_net[:-4]
+    else if backbone_name.lower() == 'vgg':
+        base_net = get_vgg(num_layers, used='recog', **base_kwargs)
+        backbone = base_net[:-4]
+    else if backbone_name.lower() == 'mobilenetv3':
+        base_net = get_mobilenet_v3(model_name, used='recog', **base_kwargs):
+        backbone = base_net[:-6]
+    else:
+        raise ValueError('Please input right backbone name.')
     encoder = Attencoder(backbone, **encode_kwargs)
     return encoder

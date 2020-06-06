@@ -26,7 +26,7 @@ from mxnet.gluon import nn
 from mxnet.gluon.nn import BatchNorm
 from mxnet.gluon.block import HybridBlock
 from mxnet.context import cpu
-from ..nn import ReLU6, HardSigmoid, HardSwish
+from gluoncv.nn import ReLU6, HardSigmoid, HardSwish
 
 
 def make_divisible(x, divisible_by=8):
@@ -222,7 +222,7 @@ class _MobileNetV3(HybridBlock):
         return x
 
 
-def get_mobilenet_v3(model_name, used='detect', multiplier=1., pretrained=False, ctx=cpu(),
+def get_mobilenet_v3(model_name, used_recog=False, multiplier=1., pretrained=False, ctx=cpu(),
                      root='~/.mxnet/models', norm_layer=BatchNorm, norm_kwargs=None, **kwargs):
     r"""MobileNet model from the
     `"Searching for MobileNetV3"
@@ -252,7 +252,7 @@ def get_mobilenet_v3(model_name, used='detect', multiplier=1., pretrained=False,
     """
 
     ss = 2
-    if used == 'recog':
+    if used_recog:
         ss = 1
 
     if model_name == "large":
@@ -299,11 +299,11 @@ def get_mobilenet_v3(model_name, used='detect', multiplier=1., pretrained=False,
                         cls_ch_expand, multiplier=multiplier, \
                         final_drop=0.2, norm_layer=norm_layer, **kwargs)
     if pretrained:
-        from .model_store import get_model_file
+        from gluoncv.model_zoo.model_store import get_model_file
         net.load_parameters(get_model_file('mobilenetv3_%s' % model_name,
                                            tag=pretrained,
                                            root=root), ctx=ctx)
-        from ..data import ImageNet1kAttr
+        from gluoncv.data import ImageNet1kAttr
         attrib = ImageNet1kAttr()
         net.synset = attrib.synset
         net.classes = attrib.classes

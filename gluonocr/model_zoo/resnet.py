@@ -513,7 +513,7 @@ resnet_block_versions = [{'basic_block': BasicBlockV1, 'bottle_neck': Bottleneck
 
 
 # Constructor
-def get_resnet(version, num_layers, used='detect', pretrained=False, ctx=cpu(),
+def get_resnet(version, num_layers, used_recog=False, pretrained=False, ctx=cpu(),
                root='~/.mxnet/models', use_se=False, **kwargs):
     r"""ResNet V1 model from `"Deep Residual Learning for Image Recognition"
     <http://arxiv.org/abs/1512.03385>`_ paper.
@@ -550,20 +550,20 @@ def get_resnet(version, num_layers, used='detect', pretrained=False, ctx=cpu(),
         "Invalid resnet version: %d. Options are 1 and 2."%version
     resnet_class = resnet_net_versions[version-1]
     block_class = resnet_block_versions[version-1][block_type]
-    if used == 'recog':
+    if used_recog:
         strides = [(1,1), (2,2), (2,1), (2,1)]
     else:
         strides = [(1,1), (2,2), (2,2), (2,2)]
     net = resnet_class(block_class, layers, channels, strides, use_se=use_se, **kwargs)
     if pretrained:
-        from .model_store import get_model_file
+        from gluoncv.model_zoo.model_store import get_model_file
         if not use_se:
             net.load_parameters(get_model_file('resnet%d_v%d'%(num_layers, version),
                                                tag=pretrained, root=root), ctx=ctx)
         else:
             net.load_parameters(get_model_file('se_resnet%d_v%d'%(num_layers, version),
                                                tag=pretrained, root=root), ctx=ctx)
-        from ..data import ImageNet1kAttr
+        from gluoncv.data import ImageNet1kAttr
         attrib = ImageNet1kAttr()
         net.synset = attrib.synset
         net.classes = attrib.classes

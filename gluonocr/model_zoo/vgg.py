@@ -91,7 +91,7 @@ vgg_spec = {11: ([1, 1, 2, 2, 2], [64, 128, 256, 512, 512]),
 
 
 # Constructors
-def get_vgg(num_layers, used='detect', pretrained=False, ctx=cpu(),
+def get_vgg(num_layers, used_recog=False, pretrained=False, ctx=cpu(),
             root='~/.mxnet/models', **kwargs):
     r"""VGG model from the `"Very Deep Convolutional Networks for Large-Scale Image Recognition"
     <https://arxiv.org/abs/1409.1556>`_ paper.
@@ -108,18 +108,18 @@ def get_vgg(num_layers, used='detect', pretrained=False, ctx=cpu(),
     root : str, default $MXNET_HOME/models
         Location for keeping the model parameters.
     """
-    if used == 'recog':
+    if used_recog:
         strides = [(2,2), (2,2), (2,2), (2,1), (2,1)]
     else:
         strides = [(2,2), (2,2), (2,2), (2,2), (2,2)]
     layers, filters = vgg_spec[num_layers]
     net = VGG(layers, filters, strides, **kwargs)
     if pretrained:
-        from .model_store import get_model_file
+        from gluoncv.model_zoo.model_store import get_model_file
         batch_norm_suffix = '_bn' if kwargs.get('batch_norm') else ''
         net.load_parameters(get_model_file('vgg%d%s'%(num_layers, batch_norm_suffix),
                                            tag=pretrained, root=root), ctx=ctx)
-        from ..data import ImageNet1kAttr
+        from gluoncv.data import ImageNet1kAttr
         attrib = ImageNet1kAttr()
         net.synset = attrib.synset
         net.classes = attrib.classes

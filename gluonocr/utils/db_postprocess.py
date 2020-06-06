@@ -55,8 +55,7 @@ class DBPostProcess(object):
                 np.round(box[:, 0] / width * dest_width), 0, dest_width)
             box[:, 1] = np.clip(
                 np.round(box[:, 1] / height * dest_height), 0, dest_height)
-            # boxes[index, :, :] = box.astype(np.int16)
-            # scores[index] = score
+            
             boxes.append(box.astype(np.int16))
             scores.append(score)
         boxes = np.array(boxes, dtype=np.int16)
@@ -102,14 +101,13 @@ class DBPostProcess(object):
                 continue
             box = np.array(box)
             area = cv2.contourArea(box)
-            if area < 36:
+            if area < self.min_area:
                 continue
             box[:, 0] = np.clip(
                 np.round(box[:, 0] / width * dest_width), 0, dest_width)
             box[:, 1] = np.clip(
                 np.round(box[:, 1] / height * dest_height), 0, dest_height)
-            # boxes[index, :, :] = box.astype(np.int16)
-            # scores[index] = score
+            
             boxes.append(box.astype(np.int16))
             scores.append(score)
         boxes = np.array(boxes, dtype=np.int16)

@@ -74,12 +74,33 @@ class DBNet(gluon.HybridBlock):
         else:
             return binary
 
-from gluoncv.model_zoo import get_model
-def resnet_db(num_layers, pretrained_base=False, ctx=mx.cpu(), **kwargs):
-    base_net = get_model('resnet%d_v1'%num_layers, pretrained=pretrained_base)
-    stages = [base_net.features[:5], 
-              base_net.features[5:6],
-              base_net.features[6:7],
-              base_net.features[7:8]]
-    net = DBNet(stages, **kwargs)
+def get_db(backbone_name, num_layers, base_kwargs={}, db_kwargs={}):
+    from ..resnet import get_resnet
+    from ..vgg import get_vgg
+    from ..mobilenetv3 import get_mobilenet_v3
+
+    if backbone_name.lower() == 'resnet':
+        base_net = get_resnet(1, num_layers, **base_kwargs)
+        ids = [5, 6, 7, 8]
+    elif backbone_name.lower() == 'resnext':
+        base_net = get_resnext(num_layers, **base_kwargs)
+
+    elif backbone_name.lower() == 'mobilenetv3':
+        if num_layers == 'small':
+            ids = [4, 6, 12, 14]
+        elif num_layers =='large':
+            ids = [6, 9, 15, 18]
+        else:
+            raise ValueError('The num_layers of moblienet must be small or large.')
+        base_net = get_mobilenet_v3(num_layers, **base_kwargs)
+        
+    else:
+        raise ValueError('Please input right backbone name.')
+    stages = [base_net.features[:ids[0]], 
+              base_net.features[ids[0]:ids[1]],
+              base_net.features[ids[1]:ids[2]],
+              base_net.features[ids[2]:ids[3]],
+             ]
+    net = DBNet(stages, **db_kwargs)
     return net
+

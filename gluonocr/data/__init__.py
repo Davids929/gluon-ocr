@@ -1,6 +1,7 @@
 from .recog_dataset import *
 from .recog_augment import *
 from .detect_dataset import *
+from .detect_augment import *
 from mxnet.gluon.data.vision import transforms
 
 normalize_fn = transforms.Compose([

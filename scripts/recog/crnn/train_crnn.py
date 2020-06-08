@@ -10,7 +10,7 @@ from mxnet import nd
 from mxnet import gluon
 from mxnet.gluon.data import DataLoader
 from gluoncv import utils as gutils
-sys.path.append(os.path.expanduser('~/Desktop/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
 from gluonocr.model_zoo import get_crnn
 from gluonocr.data import FixSizeDataset, BucketDataset 
 from gluonocr.data import BucketSampler, Augmenter
@@ -62,7 +62,7 @@ class Trainer(object):
         train_dataset = dataset_fn(args.train_data_path, args.voc_path, 
                                    short_side=args.short_side,
                                    fix_width=args.fix_width,
-                                   augmnet_fn=augment,
+                                   augment_fn=augment,
                                    max_len=args.max_len)
         val_dataset  = dataset_fn(args.val_data_path, args.voc_path, 
                                    short_side=args.short_side,
@@ -110,7 +110,6 @@ class Trainer(object):
         trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
             {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler})
 
-
         # set up logger
         logging.basicConfig()
         logger = logging.getLogger()
@@ -133,14 +132,18 @@ class Trainer(object):
             self.net.hybridize()
             for i, batch in enumerate(self.train_dataloader):
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
+                fea_mask = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
                 tag_lab  = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 tag_mask = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
                 l_list = []
                 with mx.autograd.record():
-                    for sd, tl, tm in zip(src_data, tag_lab, tag_mask):
-                        out = self.net(sd)
+                    for sd, fm, tl, tm in zip(src_data, fea_mask, tag_lab, tag_mask):
+                        out = self.net(sd, fm)
                         with mx.autograd.pause():
                             bs, seq_len = out.shape[:2]
+                            tag_len = tl.shape[1]
+                        if tag_len > seq_len:
+                            tl = tl[:, :seq_len]
                         lab_length  = mx.nd.sum(tm, axis=-1)
                         pred_length = seq_len*mx.nd.ones((bs), dtype='float32').as_in_context(sd.context)
                         loss = self.loss(out, tl, pred_length, lab_length)

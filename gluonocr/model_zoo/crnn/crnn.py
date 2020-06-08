@@ -18,11 +18,12 @@ class CRNN(nn.HybridBlock):
                                    dropout=dropout, bidirectional=use_bilstm)
         self.fc   = nn.Dense(voc_size, flatten=False)
 
-    def hybrid_forward(self, F, x):
+    def hybrid_forward(self, F, x, mask):
         if self.use_stn:
             x = self.stn(x)
         x = self.stages(x)
         x = F.reshape(x, (0, 0, -1))
+        x = F.broadcast_mul(x, mask)
         x = F.transpose(x, axes=(0, 2, 1))
         x = self.lstm(x)
         x = self.fc(x)

@@ -10,7 +10,8 @@ class Augmenter(object):
             self.seq = self.get_aug_seq(configs)
 
     def __call__(self, img):
-        return self.seq(img)
+        img = self.seq.augment_image(img)
+        return img
     
     def get_aug_seq(self, configs):
         seqence = []

@@ -24,9 +24,9 @@ class AttEncoder(nn.HybridBlock):
     def hybrid_forward(self, F, x, mask):
         x = self.stages(x)
         x = F.reshape(x, shape=(0, 0, -1))
-        output = F.transpose(x, axes=(0, 2, 1))
-        output = self.rnn(output)
-        output = F.broadcast_mul(output, mask)
+        x = F.broadcast_mul(x, mask)
+        x = F.transpose(x, axes=(0, 2, 1))
+        output = self.rnn(x)
         out_proj = self.pre_compute(output)
         return output, out_proj
 

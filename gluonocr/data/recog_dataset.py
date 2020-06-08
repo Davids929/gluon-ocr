@@ -8,7 +8,7 @@ import mxnet as mx
 from mxnet.gluon.data import Dataset
 from . import normalize_fn
 class FixSizeDataset(Dataset):
-    def __init__(self, line_path, voc_path, augmnet_fn=None, short_side=32, 
+    def __init__(self, line_path, voc_path, augment_fn=None, short_side=32, 
                  fix_width=256, max_len=60, start_sym=None, end_sym=None):
 
         self.short_side  = short_side
@@ -17,7 +17,7 @@ class FixSizeDataset(Dataset):
         self.add_symbol  = False if start_sym==None or end_sym==None else True
         self.start_sym   = start_sym
         self.end_sym     = end_sym if self.add_symbol else -1
-        self.augmnet_fn  = augmnet_fn
+        self.augment_fn  = augment_fn
         self.word2id   = self._load_voc_dict(voc_path)
         self.word_list = list(self.word2id.keys())
         self.imgs_list, self.labs_list = self._get_items(line_path)
@@ -30,7 +30,7 @@ class FixSizeDataset(Dataset):
             line_list = fi.readlines()
         idx = len(word2id_dict)
         for line in line_list:
-            word = line.strip()[0]
+            word = line.strip('\n')[0]
             word2id_dict[word] = idx
             idx = idx + 1
         return word2id_dict
@@ -104,9 +104,6 @@ class FixSizeDataset(Dataset):
         if h > 4*w:
             img_np = np.rot90(img_np)
             h, w = w, h
-        if self.fix_width is not None:
-            img_np = cv2.resize(img_np, (self.fix_width, self.short_side))
-            return img_np
 
         w = int(math.ceil(w*self.short_side/h/8))*8
         if w> max_width:
@@ -118,34 +115,40 @@ class FixSizeDataset(Dataset):
         img_path = self.imgs_list[idx]
         text     = self.labs_list[idx]
         img_np   = cv2.imread(img_path)
+        if img_np is None:
+            return self.__getitem__(idx-1)
         img_np   = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
-        img_np   = self.image_resize(img_np)
+        img_np   = self.image_resize(img_np, max_width=self.fix_width)
         if self.augment_fn is not None:
             img_np = self.augment_fn(img_np)
         h, w = img_np.shape[:2]
         img_nd   = mx.nd.array(img_np)
         img_nd   = normalize_fn(img_nd)
-        img_mask = mx.nd.ones((1, h, w), dtype='float32')
+        img_data = mx.nd.zeros((3, self.short_side, self.fix_width), dtype='float32')
+        img_data[:, :h, :w] = img_nd
+        img_mask = mx.nd.zeros((1, (self.short_side//32*self.fix_width//8)), dtype='float32')
+        img_mask[:, :(h//32 * w//8)] = 1.0
         lab, lab_mask = self.text2ids(text, self.max_len)
         if not self.add_symbol:
-            return img_nd, img_mask, lab, lab_mask, idx
+            return img_data, img_mask, lab, lab_mask, idx
 
         targ_data = mx.nd.ones(shape=(self.max_len), dtype='float32')*self.end_sym
         targ_data[0] = self.start_sym
         targ_data[1:] = lab[:-1]
-        return img_nd, img_mask, targ_data, lab, lab_mask, idx
+        return img_data, img_mask, targ_data, lab, lab_mask, idx
 
 class BucketDataset(FixSizeDataset):
-    def __init_(self, line_path, voc_path, augmnet_fn=None, short_side=32, 
+    def __init_(self, line_path, voc_path, augment_fn=None, short_side=32, 
                 fix_width=None, max_len=60, start_sym=None, end_sym=None, 
                 split_width_len=128, split_text_len=10,):
     
-        super(BucketDataset, self).__init__(line_path, voc_path, augmnet_fn=augmnet_fn, 
+        super(BucketDataset, self).__init__(line_path, voc_path, augment_fn=augment_fn, 
                                             short_side=short_side, fix_width=None, max_len=max_len,
                                             start_sym=start_sym, end_sym=end_sym)
         
         self.split_width_len = split_width_len
         self.split_text_len  = split_text_len
+        self.max_width       = split_width_len*8
         self.gen_bucket()
 
     def _get_bucket_key(self, img_shape, text_len):
@@ -186,17 +189,17 @@ class BucketDataset(FixSizeDataset):
         img_np = cv2.imread(img_path)
         inp_h, inp_w, lab_len = self._get_bucket_key(img_np.shape, len(text))
         img_data = mx.nd.zeros(shape=(3, inp_h, inp_w), dtype='float32')
-        img_mask = mx.nd.zeros(shape=(1, inp_h, inp_w), dtype='float32')
+        img_mask = mx.nd.zeros(shape=(1, (inp_h//32) * (inp_w//8)), dtype='float32')
         img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
         img_np = self.image_resize(img_np, max_width=self.max_width)
         
         h, w = img_np.shape[:2]
-        if self.use_augment:
-            img_np = self.augmenter(img_np)
+        if self.augment_fn is not None:
+            img_np = self.augment_fn(img_np)
         img_nd = mx.nd.array(img_np) 
         img_nd = normalize_fn(img_nd)
         img_data[:, :h, :w] = img_nd
-        img_mask[:, :h, :w] = 1.0
+        img_mask[:, :(h//32 * w//8)] = 1.0
         lab, lab_mask = self.text2ids(text, lab_len)
         if not self.add_symbol:
             return img_data, img_mask, lab, lab_mask, idx

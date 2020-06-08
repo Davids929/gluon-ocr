@@ -101,3 +101,10 @@ class DBLoss(Loss):
         else:
             loss = bce_loss
         return loss, metrics
+
+class EASTLoss(Loss):
+    def __init__(self, eps=1e-6, weight=1., batch_axis=0, **kwargs):
+        super(L1BalanceCELoss, self).__init__(weight, batch_axis, **kwargs)
+
+    def forward(self, pred, batch):
+        pass

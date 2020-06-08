@@ -6,11 +6,10 @@ from shapely.geometry import Polygon
 import pyclipper
 
 class MakeSegDetectorData(object):
-    
-
-    def __init__(self, min_text_size=8, shrink_ratio=0.4):
+    def __init__(self, min_text_size=8, shrink_ratio=0.4, gen_geometry=False):
         self.min_text_size = min_text_size
-        self.shrink_ratio = shrink_ratio
+        self.shrink_ratio  = shrink_ratio
+        self.gen_geometry  = gen_geometry 
 
     def __call__(self, data, *args, **kwargs):
         '''
@@ -29,6 +28,8 @@ class MakeSegDetectorData(object):
             polygons, ignore_tags, h, w)
         gt = np.zeros((1, h, w), dtype=np.float32)
         mask = np.ones((h, w), dtype=np.float32)
+        inst_mask = np.zeros((h, w), dtype=np.float32)
+        geo_map   = np.zeros((h, w), dtype=np.float32)
         for i in range(polygons.shape[0]):
             polygon = polygons[i]
             height = min(np.linalg.norm(polygon[0] - polygon[3]),
@@ -55,12 +56,30 @@ class MakeSegDetectorData(object):
                     continue
                 shrinked = np.array(shrinked[0]).reshape(-1, 2)
                 cv2.fillPoly(gt[0], [shrinked.astype(np.int32)], 1)
+                if self.gen_geometry:
+                    cv2.fillPoly(inst_mask, [shrinked.astype(np.int32)], i+1)
+                    xy_in_poly = np.argwhere(inst_mask == (index + 1))
+                    # geo map.
+                    y_in_poly = xy_in_poly[:, 0]
+                    x_in_poly = xy_in_poly[:, 1]
+                    polygon[:, 0] = np.minimum(np.maximum(polygon[:, 0], 0), w)
+                    polygon[:, 1] = np.minimum(np.maximum(polygon[:, 1], 0), h)
+                    for pno in range(4):
+                        geo_channel_beg = pno * 2
+                        geo_map[y_in_poly, x_in_poly, geo_channel_beg] =\
+                            x_in_poly - polygon[pno, 0]
+                        geo_map[y_in_poly, x_in_poly, geo_channel_beg+1] =\
+                            y_in_poly - polygon[pno, 1]
+                    geo_map[y_in_poly, x_in_poly, 8] = \
+                        1.0 / max(min(height, width), 1.0)
 
         if filename is None:
             filename = ''
         data.update(image=image,
                     polygons=polygons,
                     gt=gt, mask=mask, filename=filename)
+        if self.gen_geometry:
+            data.update(geo_map=geo_map)
         return data
 
     def validate_polygons(self, polygons, ignore_tags, h, w):

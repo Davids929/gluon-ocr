@@ -104,3 +104,29 @@ class DBDataset(Dataset):
             ignore_list.append(ignore)
 
         return ploy_list, ignore_list
+
+class EASTDataset(DaDBDatasettaset):
+    def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
+                 min_text_size=8, shrink_ratio=0.4, debug=False):
+        self.img_dir = img_dir
+        self.lab_dir = lab_dir
+        self.debug   = debug
+        self.img_size     = img_size
+        self.augment_fns  = augment_fns
+        self.shrink_ratio = shrink_ratio
+        self.min_text_size= min_text_size 
+        self.imgs_type   = ['jpg', 'jpeg', 'png', 'bmp']
+        self.imgs_list, self.labs_list = self._get_items(img_dir, lab_dir)
+    
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.img_dir, self.imgs_list[idx])
+        lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
+        img_np   = cv2.imread(img_path)
+        if img_np is None:
+            return self.__getitem__(idx-1)
+        if len(polygons) == 0:
+            return self.__getitem__(idx-1)
+        if self.augment_fns is not None:
+            img_np, polygons = self.augment_fns(img_np, polygons)
+        img_np, polygons = self.image_resize(img_np, polygons)
+        

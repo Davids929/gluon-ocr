@@ -10,7 +10,7 @@ class RecogAccuracy(EvalMetric):
         self.ctc_mode = ctc_mode
         if ctc_mode:
             self.blank = voc_size-1
-
+        self.eps = 1e-6
 
     def get_pred(self, preds, max_len=100):
         batch_size, seq_len = preds.shape[:2]
@@ -39,7 +39,7 @@ class RecogAccuracy(EvalMetric):
         if self.ctc_mode:
             preds = self.get_pred(preds)
         acc = preds[:, :seq_len] == labels
-        accuracy = np.sum(acc*mask,axis=-1)/np.sum(mask, axis=-1)
+        accuracy = np.sum(acc*mask,axis=-1)/(np.sum(mask, axis=-1)+self.eps)
         accuracy = np.mean(accuracy)
         self.sum_metric += accuracy
         self.num_inst += 1

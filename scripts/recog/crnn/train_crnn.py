@@ -41,7 +41,7 @@ class Trainer(object):
         self.net.collect_params().reset_ctx(self.ctx)
         self.loss = gluon.loss.CTCLoss()
         self.loss_metric = mx.metric.Loss('CTCLoss')
-        self.acc_metric  = RecogAccuracy(self.voc_size+1)
+        self.acc_metric  = RecogAccuracy(self.voc_size+1, ctc_mode=True)
 
     def init_model(self):
         if args.resume.strip():

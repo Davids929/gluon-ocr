@@ -308,6 +308,8 @@ def get_mobilenet_v3(model_name, used_recog=False, multiplier=1., pretrained=Fal
         net.synset = attrib.synset
         net.classes = attrib.classes
         net.classes_long = attrib.classes_long
+    else:
+        net.initialize()
     return net
 
 

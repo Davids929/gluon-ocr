@@ -77,7 +77,7 @@ class DBDataset(Dataset):
         new_w = int(w*scale)
         img   = cv2.resize(img, (new_w, new_h)) 
         new_img = np.zeros((self.img_size[1], self.img_size[0], img.shape[2]), img.dtype)
-        new_img[:new_h, :new_w, :] img
+        new_img[:new_h, :new_w, :] = img
         ploy_list = []
         for poly in polys:
             poly = (np.array(poly)*scale).tolist()

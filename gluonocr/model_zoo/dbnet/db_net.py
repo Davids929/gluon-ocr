@@ -74,23 +74,28 @@ class DBNet(gluon.HybridBlock):
         else:
             return binary
 
-def get_db(backbone_name, num_layers, base_kwargs={}, db_kwargs={}):
+def get_db(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
+           norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
     from ..resnet import get_resnet
     from ..mobilenetv3 import get_mobilenet_v3
     from ..resnext import get_resnext
     if backbone_name.lower() == 'resnet':
-        base_net = get_resnet(1, num_layers, **base_kwargs)
+        base_net = get_resnet(1, num_layers,  pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         ids = [5, 6, 7, 8]
     elif backbone_name.lower() == 'resnext':
-        base_net = get_resnext(num_layers, **base_kwargs)
+        base_net = get_resnext(num_layers,  pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         ids = [5, 6, 7, 8]
     elif backbone_name.lower() == 'mobilenetv3':
         if num_layers == 24:
             ids = [4, 6, 12, 17]
-            base_net = get_mobilenet_v3('small', **base_kwargs)
+            base_net = get_mobilenet_v3('small',  pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         elif num_layers == 32:
             ids = [6, 9, 15, 21]
-            base_net = get_mobilenet_v3('large', **base_kwargs)
+            base_net = get_mobilenet_v3('large',  pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         else:
             raise ValueError('The num_layers of moblienetv3 must be 24 or 32.')
         
@@ -101,6 +106,6 @@ def get_db(backbone_name, num_layers, base_kwargs={}, db_kwargs={}):
               base_net.features[ids[1]:ids[2]],
               base_net.features[ids[2]:ids[3]],
              ]
-    net = DBNet(stages, **db_kwargs)
+    net = DBNet(stages, **kwargs)
     return net
 

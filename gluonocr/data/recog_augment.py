@@ -3,7 +3,7 @@ import numpy as np
 import imgaug.augmenters as iaa
 import random
 class Augmenter(object):
-    def __init__(self, configs):
+    def __init__(self, configs=[]):
         if configs == []:
             self.seq = self.get_default_seq()
         else:

@@ -30,30 +30,36 @@ class AttEncoder(nn.HybridBlock):
         out_proj = self.pre_compute(output)
         return output, out_proj
 
-def get_encoder(backbone_name, num_layers, base_kwargs={}, encode_kwargs={}):
+def get_encoder(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
+                norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
     from ..resnet import get_resnet
     from ..resnext import get_resnext
     from ..vgg import get_vgg
     from ..mobilenetv3 import get_mobilenet_v3
     
     if backbone_name.lower() == 'resnet':
-        base_net = get_resnet(1, num_layers, used_recog=True, **base_kwargs)
+        base_net = get_resnet(1, num_layers, used_recog=True, pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         backbone = base_net.features[:-1]
     elif backbone_name.lower() == 'resnext':
-        base_net = get_resnet(num_layers, used_recog=True, **base_kwargs)
+        base_net = get_resnext(num_layers, used_recog=True, pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         backbone = base_net.features[:-1]
     elif backbone_name.lower() == 'vgg':
-        base_net = get_vgg(num_layers, used_recog=True, **base_kwargs)
+        base_net = get_vgg(num_layers, used_recog=True, pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         backbone = base_net.features[:-4]
     elif backbone_name.lower() == 'mobilenetv3':
         if num_layers == 24:
-            base_net = get_mobilenet_v3('small', use_recog=True, **base_kwargs)
+            base_net = get_mobilenet_v3('small', use_recog=True, pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         elif num_layers == 32:
-            base_net = get_mobilenet_v3('large', use_recog=True, **base_kwargs)
+            base_net = get_mobilenet_v3('large', use_recog=True, pretrained=pretrained_base,
+                              norm_layer=norm_layer, norm_kwargs=norm_kwargs)
         else:
             raise ValueError('The num_layers of moblienetv3 must be 24 or 32.')
         backbone = base_net.features[:-4]
     else:
         raise ValueError('Please input right backbone name.')
-    encoder = AttEncoder(backbone, **encode_kwargs)
+    encoder = AttEncoder(backbone, **kwargs)
     return encoder

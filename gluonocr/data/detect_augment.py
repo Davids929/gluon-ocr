@@ -4,7 +4,7 @@ import imgaug
 import imgaug.augmenters as iaa
 
 class MaskAugmenter(object):
-    def __init__(self, configs):
+    def __init__(self, configs=[]):
         if len(configs)==0:
             self.aug = self.get_default_aug()
         else:
@@ -21,7 +21,7 @@ class MaskAugmenter(object):
         seq = iaa.Sequential(seqence, random_order=True)
         return seq
 
-    def get_default_aug():
+    def get_default_aug(self):
         pixel_seq = iaa.SomeOf(3, [iaa.LinearContrast((0.8, 1.2)),
                                    iaa.Multiply((0.9, 1.1)),
                                    iaa.Grayscale((0,1.0)),

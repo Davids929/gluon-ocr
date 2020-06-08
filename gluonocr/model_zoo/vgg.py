@@ -45,9 +45,13 @@ class VGG(HybridBlock):
     batch_norm : bool, default False
         Use batch normalization.
     """
-    def __init__(self, layers, filters, strides, classes=1000, batch_norm=False, **kwargs):
+    def __init__(self, layers, filters, strides, classes=1000, batch_norm=False, 
+                 norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
         super(VGG, self).__init__(**kwargs)
         assert len(layers) == len(filters)
+        self.norm_layer = norm_layer
+        self.norm_kwargs = norm_kwargs
+        
         with self.name_scope():
             self.features = self._make_features(layers, filters, strides, batch_norm)
             self.features.add(nn.Dense(4096, activation='relu',
@@ -72,7 +76,7 @@ class VGG(HybridBlock):
                                                                    magnitude=2),
                                          bias_initializer='zeros'))
                 if batch_norm:
-                    featurizer.add(nn.BatchNorm())
+                    featurizer.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
                 featurizer.add(nn.Activation('relu'))
             featurizer.add(nn.MaxPool2D(strides=strides[i]))
         return featurizer
@@ -124,6 +128,8 @@ def get_vgg(num_layers, used_recog=False, pretrained=False, ctx=cpu(),
         net.synset = attrib.synset
         net.classes = attrib.classes
         net.classes_long = attrib.classes_long
+    else:
+        net.initialize()
     return net
 
 def vgg11(**kwargs):

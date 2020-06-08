@@ -7,10 +7,9 @@ import numpy as np
 import mxnet as mx
 from mxnet.gluon.data import Dataset
 from . import normalize_fn
-
 class FixSizeDataset(Dataset):
     def __init__(self, line_path, voc_path, augmnet_fn=None, short_side=32, 
-                 fix_width=256, max_len=60, start_sym=0, end_sym=1):
+                 fix_width=256, max_len=60, start_sym=None, end_sym=None):
 
         self.short_side  = short_side
         self.fix_width   = fix_width
@@ -55,7 +54,7 @@ class FixSizeDataset(Dataset):
                     label    = lst[1]
                     if not os.path.exists(img_path):
                         continue
-                    if label == '###' len(label)>self.max_len-1:
+                    if label == '###' or len(label)>self.max_len-1:
                         continue
                     imgs_list.append(img_path)
                     labs_list.append(label)
@@ -125,87 +124,86 @@ class FixSizeDataset(Dataset):
             img_np = self.augment_fn(img_np)
         h, w = img_np.shape[:2]
         img_nd   = mx.nd.array(img_np)
-        img_nd = normalize_fn(img_nd)
+        img_nd   = normalize_fn(img_nd)
+        img_mask = mx.nd.ones((1, h, w), dtype='float32')
         lab, lab_mask = self.text2ids(text, self.max_len)
         if not self.add_symbol:
-            return img_nd, lab, lab_mask, idx
+            return img_nd, img_mask, lab, lab_mask, idx
 
         targ_data = mx.nd.ones(shape=(self.max_len), dtype='float32')*self.end_sym
         targ_data[0] = self.start_sym
         targ_data[1:] = lab[:-1]
-        return img_nd, targ_data, lab, lab_mask, idx
-
+        return img_nd, img_mask, targ_data, lab, lab_mask, idx
 
 class BucketDataset(FixSizeDataset):
     def __init_(self, line_path, voc_path, augmnet_fn=None, short_side=32, 
-                fix_width=None, max_len=60, start_sym=0, end_sym=1, 
+                fix_width=None, max_len=60, start_sym=None, end_sym=None, 
                 split_width_len=128, split_text_len=10,):
     
         super(BucketDataset, self).__init__(line_path, voc_path, augmnet_fn=augmnet_fn, 
                                             short_side=short_side, fix_width=None, max_len=max_len,
-                                            start_sym=0, end_sym=1)
+                                            start_sym=start_sym, end_sym=end_sym)
         
         self.split_width_len = split_width_len
         self.split_text_len  = split_text_len
         self.gen_bucket()
 
-        def _get_bucket_key(self, img_shape, text_len):
-            h, w = img_shape[:2]
-            text_ratio = math.ceil((text_len+1)/self.split_text_len)
-            text_len = self.split_text_len*text_ratio
-            if h > 4*w:
-                w, h = img_shape[:2]
-            if w/h > self.max_width/self.short_side:
-                return (self.short_side, self.max_width, text_len)
-            ratio = math.ceil(self.short_side * w / h / self.split_width_len)
-            return (self.short_side, self.split_width_len * ratio, text_len)
-        
-        def gen_bucket(self, save_bucket=True):
-            bucket_keys, bucket_dict = [], {}
-            for idx in range(len(self.imgs_list)):
-                img_np = cv2.imread(self.imgs_list[idx])
-                text = self.labs_list[idx]
-                if img_np is None:
-                    continue
-                if len(text) > self.max_len:
-                    continue
-                bucket_key = self._get_bucket_key(img_np.shape, len(text))
-                bucket_key = str(bucket_key)
-                if bucket_key not in bucket_keys:
-                    bucket_keys.append(bucket_key)
-                    bucket_dict[bucket_key] = []
-                bucket_dict[bucket_key].append(idx)
-
-            for key in bucket_keys:
-                print('bucket key:', key, 'the number of image:', len(bucket_dict[key]))
-
-            self.bucket_dict = bucket_dict
-            self.bucket_keys = bucket_keys
-
-        def __getitem__(self, idx):
-            img_path = self.imgs_list[idx]
+    def _get_bucket_key(self, img_shape, text_len):
+        h, w = img_shape[:2]
+        text_ratio = math.ceil((text_len+1)/self.split_text_len)
+        text_len = self.split_text_len*text_ratio
+        if h > 4*w:
+            w, h = img_shape[:2]
+        if w/h > self.max_width/self.short_side:
+            return (self.short_side, self.max_width, text_len)
+        ratio = math.ceil(self.short_side * w / h / self.split_width_len)
+        return (self.short_side, self.split_width_len * ratio, text_len)
+    
+    def gen_bucket(self):
+        bucket_keys, bucket_dict = [], {}
+        for idx in range(len(self.imgs_list)):
+            img_np = cv2.imread(self.imgs_list[idx])
             text = self.labs_list[idx]
-            img_np = cv2.imread(img_path)
-            inp_h, inp_w, lab_len = self._get_bucket_key(img_np.shape, len(text))
-            img_data = mx.nd.zeros(shape=(3, inp_h, inp_w), dtype='float32')
-            img_mask = mx.nd.zeros(shape=(1, inp_h, inp_w), dtype='float32')
-            img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
-            img_np = self.image_resize(img_np, max_width=self.max_width)
-            
-            h, w = img_np.shape[:2]
-            if self.use_augment:
-                img_np = self.augmenter(img_np)
-            img_nd = mx.nd.array(img_np) 
-            img_nd = normalize_fn(img_nd)
-            img_data[:, :h, :w] = img_nd
-            img_mask[:, :h, :w] = 1.0
-            lab, lab_mask = self.text2ids(text, lab_len)
-            if not self.add_symbol:
-                return img_data, img_mask, lab, lab_mask, idx
-            targ_data = mx.nd.ones(shape=(max_len), dtype='float32')*self.end_sym
-            targ_data[0] = self.start_sym
-            targ_data[1:] = lab[:-1]
-            return img_data, img_mask, targ_data, lab, lab_mask, idx
+            if img_np is None:
+                continue
+            if len(text) > self.max_len:
+                continue
+            bucket_key = self._get_bucket_key(img_np.shape, len(text))
+            bucket_key = str(bucket_key)
+            if bucket_key not in bucket_keys:
+                bucket_keys.append(bucket_key)
+                bucket_dict[bucket_key] = []
+            bucket_dict[bucket_key].append(idx)
+
+        for key in bucket_keys:
+            print('bucket key:', key, 'the number of image:', len(bucket_dict[key]))
+        self.bucket_dict = bucket_dict
+        self.bucket_keys = bucket_keys
+
+    def __getitem__(self, idx):
+        img_path = self.imgs_list[idx]
+        text = self.labs_list[idx]
+        img_np = cv2.imread(img_path)
+        inp_h, inp_w, lab_len = self._get_bucket_key(img_np.shape, len(text))
+        img_data = mx.nd.zeros(shape=(3, inp_h, inp_w), dtype='float32')
+        img_mask = mx.nd.zeros(shape=(1, inp_h, inp_w), dtype='float32')
+        img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+        img_np = self.image_resize(img_np, max_width=self.max_width)
+        
+        h, w = img_np.shape[:2]
+        if self.use_augment:
+            img_np = self.augmenter(img_np)
+        img_nd = mx.nd.array(img_np) 
+        img_nd = normalize_fn(img_nd)
+        img_data[:, :h, :w] = img_nd
+        img_mask[:, :h, :w] = 1.0
+        lab, lab_mask = self.text2ids(text, lab_len)
+        if not self.add_symbol:
+            return img_data, img_mask, lab, lab_mask, idx
+        targ_data = mx.nd.ones(shape=(lab_len), dtype='float32')*self.end_sym
+        targ_data[0] = self.start_sym
+        targ_data[1:] = lab[:-1]
+        return img_data, img_mask, targ_data, lab, lab_mask, idx
 
 class Sampler(object):
     def __init__(self, idx_list):

@@ -274,7 +274,8 @@ def get_resnext(num_layers, used_recog=False, cardinality=32, bottleneck_width=4
         net.synset = attrib.synset
         net.classes = attrib.classes
         net.classes_long = attrib.classes_long
-
+    else:
+        net.initialize()
     return net
 
 

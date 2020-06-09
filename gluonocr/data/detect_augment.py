@@ -23,9 +23,9 @@ class MaskAugmenter(object):
 
     def get_default_aug(self):
         pixel_seq = iaa.SomeOf(3, [iaa.LinearContrast((0.8, 1.2)),
-                                   iaa.Multiply((0.9, 1.1)),
+                                   iaa.Multiply((0.8, 1.2)),
                                    iaa.Grayscale((0,1.0)),
-                                   iaa.GaussianBlur((0, 0.5)),
+                                   iaa.GaussianBlur((0, 1)),
                                    iaa.Add((-10, 10), per_channel=0.5),
                                    ])
         
@@ -40,17 +40,18 @@ class MaskAugmenter(object):
         return seq
 
 class PointAugmenter(MaskAugmenter):
-    def __init__(self, configs):
+    def __init__(self, configs=[]):
         super(PointAugmenter, self).__init__(configs)
     
     def __call__(self, img, ploys):
-        self.aug = self.aug.to_deterministic()
-        img = self.aug(image=img)
+        aug = self.aug.to_deterministic()
+        origin_shape = img.shape
+        img = aug.augment_image(img)
         poly_list = []
-        for ploy in ploys:
+        for poly in ploys:
             keypoints = [imgaug.Keypoint(p[0], p[1]) for p in poly]
-            keypoints = self.aug.augment_keypoints(
-                            [imgaug.KeypointsOnImage(keypoints, shape=img_shape)])[0].keypoints
-            poly = [(p.x, p.y) for p in keypoints]
-            poly_list.append(poly)
+            keypoints = aug.augment_keypoints(
+                            [imgaug.KeypointsOnImage(keypoints, shape=origin_shape)])[0].keypoints
+            poly = [[p.x, p.y] for p in keypoints]
+            poly_list.append(np.array(poly))
         return img, poly_list

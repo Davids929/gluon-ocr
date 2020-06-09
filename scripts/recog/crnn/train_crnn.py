@@ -128,7 +128,6 @@ class Trainer(object):
         for epoch in range(args.start_epoch, args.epochs):
             tic = time.time()
             btic = time.time()
-            mx.nd.waitall()
             self.net.hybridize()
             for i, batch in enumerate(self.train_dataloader):
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
@@ -183,9 +182,10 @@ class Trainer(object):
         self.acc_metric.reset()
         for i, data in enumerate(self.val_dataloader):
             s_data = data[0].as_in_context(self.ctx[0])
+            s_mask = data[1].as_in_context(self.ctx[0])
             t_label = data[2]
             t_mask = data[3]
-            out  = self.net(s_data)
+            out  = self.net(s_data, s_mask)
             self.acc_metric.update(out, t_label, t_mask)
         name, acc = self.acc_metric.get()
         self.acc_metric.reset()

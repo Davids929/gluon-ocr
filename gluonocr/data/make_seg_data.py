@@ -12,25 +12,20 @@ class MakeSegDetectorData(object):
         self.gen_geometry  = gen_geometry 
 
     def __call__(self, data, *args, **kwargs):
-        '''
-        data: a dict typically returned from `MakeICDARData`,
-            where the following keys are contrains:
-                image*, polygons*, ignore_tags*, shape, filename
-                * means required.
-        '''
-        image = data['image']
-        polygons = data['polygons']
+        
+        image       = data['image']
+        polygons    = data['polygons']
         ignore_tags = data['ignore_tags']
-        filename = data['filename']
 
         h, w = image.shape[:2]
         polygons, ignore_tags = self.validate_polygons(
             polygons, ignore_tags, h, w)
-        gt = np.zeros((1, h, w), dtype=np.float32)
+        gt   = np.zeros((h, w), dtype=np.float32)
         mask = np.ones((h, w), dtype=np.float32)
         inst_mask = np.zeros((h, w), dtype=np.float32)
-        geo_map   = np.zeros((h, w), dtype=np.float32)
-        for i in range(polygons.shape[0]):
+        # (x1, y1, ..., x4, y4, short_edge_norm)
+        geo_map   = np.zeros((h, w, 9), dtype=np.float32)
+        for i in range(len(polygons)):
             polygon = polygons[i]
             height = min(np.linalg.norm(polygon[0] - polygon[3]),
                          np.linalg.norm(polygon[1] - polygon[2]))
@@ -55,10 +50,11 @@ class MakeSegDetectorData(object):
                     ignore_tags[i] = True
                     continue
                 shrinked = np.array(shrinked[0]).reshape(-1, 2)
-                cv2.fillPoly(gt[0], [shrinked.astype(np.int32)], 1)
+                cv2.fillPoly(gt, [shrinked.astype(np.int32)], 1)
+                # generate geometry map
                 if self.gen_geometry:
                     cv2.fillPoly(inst_mask, [shrinked.astype(np.int32)], i+1)
-                    xy_in_poly = np.argwhere(inst_mask == (index + 1))
+                    xy_in_poly = np.argwhere(inst_mask == i+1)
                     # geo map.
                     y_in_poly = xy_in_poly[:, 0]
                     x_in_poly = xy_in_poly[:, 1]
@@ -73,28 +69,25 @@ class MakeSegDetectorData(object):
                     geo_map[y_in_poly, x_in_poly, 8] = \
                         1.0 / max(min(height, width), 1.0)
 
-        if filename is None:
-            filename = ''
         data.update(image=image,
                     polygons=polygons,
-                    gt=gt, mask=mask, filename=filename)
+                    gt=gt, mask=mask)
         if self.gen_geometry:
+            geo_map = np.transpose(geo_map, axes=(2, 0, 1))
             data.update(geo_map=geo_map)
         return data
 
     def validate_polygons(self, polygons, ignore_tags, h, w):
-        '''
-        polygons (numpy.array, required): of shape (num_instances, num_points, 2)
-        '''
-        if polygons.shape[0] == 0:
+        
+        num_polys = len(polygons)
+        if num_polys == 0:
             return polygons, ignore_tags
-        assert polygons.shape[0] == len(ignore_tags)
+        assert num_polys == len(ignore_tags)
 
-        polygons[:, :, 0] = np.clip(polygons[:, :, 0], 0, w - 1)
-        polygons[:, :, 1] = np.clip(polygons[:, :, 1], 0, h - 1)
-
-        for i in range(polygons.shape[0]):
+        for i in range(num_polys):
             area = self.polygon_area(polygons[i])
+            polygons[i][:, 0] = np.clip(polygons[i][:, 0], 0, w - 1)
+            polygons[i][:, 1] = np.clip(polygons[i][:, 1], 0, h - 1)
             if abs(area) < 1:
                 ignore_tags[i] = True
             if area > 0:

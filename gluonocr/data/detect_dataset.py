@@ -56,15 +56,19 @@ class DBDataset(Dataset):
         data = {'image':img_np, 'polygons':polygons, 'ignore_tags':ignore_tags}
         data = self.get_label(data)
         data = self.get_border(data)
-        image = mx.nd.array(data['image'], dtype='float32')
+        
         if self.debug:
-            aa =  data['gt'][0]*255
+            aa =  data['gt']*255
             cv2.imwrite('gt.jpg',aa.astype('uint8'))
             bb = data['thresh_map']*255 * data['thresh_mask']
             cv2.imwrite('thresh.jpg', bb.astype('uint8'))
-            cv2.imwrite('image.jpg', image.astype('uint8').asnumpy())
+            image = data['image'].astype('uint8')
+            for poly in polygons:
+                cv2.polylines(image, [poly.astype('int32')], True, (0, 255, 0), 2)
+            cv2.imwrite('image.jpg', image)
+        image = mx.nd.array(data['image'], dtype='float32')
         image = normalize_fn(image)
-        gt    = mx.nd.array(data['gt'], dtype='float32')
+        gt    = mx.nd.array(data['gt'], dtype='float32').expand_dims(axis=0)
         mask  = mx.nd.array(data['mask'], dtype='float32').expand_dims(axis=0)
         thresh_map = mx.nd.array(data['thresh_map'], dtype='float32').expand_dims(axis=0)
         thresh_mask= mx.nd.array(data['thresh_mask'], dtype='float32').expand_dims(axis=0)
@@ -80,8 +84,7 @@ class DBDataset(Dataset):
         new_img[:new_h, :new_w, :] = img
         ploy_list = []
         for poly in polys:
-            poly = (np.array(poly)*scale).tolist()
-            ploy_list.append(poly)
+            ploy_list.append(poly*scale)
         return new_img, ploy_list
 
     def _load_ann(self, lab_path):
@@ -91,21 +94,21 @@ class DBDataset(Dataset):
         ignore_list = []
         for l in lines:
             lst  = l.strip().split(',')
-            num_points = ((len(lst)-1)//2)*2
+            num_points = 8#((len(lst)-1)//2)*2
             try:
                 points = [float(i) for i in lst[:num_points]]
             except:
                 print(lab_path, ',', l)
                 continue
-            poly = np.array(points).reshape(-1, 2).tolist()
-            text = ','.join(lst[8:])
+            poly = np.array(points).reshape(-1, 2)
+            text = ','.join(lst[num_points:])
             ignore = text == '###' or text == ''
-            ploy_list.append(text)
+            ploy_list.append(poly)
             ignore_list.append(ignore)
 
         return ploy_list, ignore_list
 
-class EASTDataset(DaDBDatasettaset):
+class EASTDataset(DBDataset):
     def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
                  min_text_size=8, shrink_ratio=0.4, debug=False):
         self.img_dir = img_dir
@@ -117,16 +120,36 @@ class EASTDataset(DaDBDatasettaset):
         self.min_text_size= min_text_size 
         self.imgs_type   = ['jpg', 'jpeg', 'png', 'bmp']
         self.imgs_list, self.labs_list = self._get_items(img_dir, lab_dir)
-    
+        self.get_label  = MakeSegDetectorData(min_text_size=min_text_size, 
+                                              shrink_ratio=shrink_ratio,
+                                              gen_geometry=True)
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.imgs_list[idx])
         lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)
+        polygons, ignore_tags = self._load_ann(lab_path)
         if len(polygons) == 0:
             return self.__getitem__(idx-1)
         if self.augment_fns is not None:
             img_np, polygons = self.augment_fns(img_np, polygons)
         img_np, polygons = self.image_resize(img_np, polygons)
-        
+        data = {'image':img_np, 'polygons':polygons, 'ignore_tags':ignore_tags}
+        data = self.get_label(data)
+        if self.debug:
+            aa = data['gt']*255
+            cv2.imwrite('gt.jpg',aa.astype('uint8'))
+            bb = data['mask']*255
+            cv2.imwrite('thresh.jpg', bb.astype('uint8'))
+            image = data['image'].astype('uint8')
+            for poly in polygons:
+                cv2.polylines(image, [poly.astype('int32')], True, (0, 255, 0), 2)
+            cv2.imwrite('image.jpg', image)
+
+        image = mx.nd.array(data['image'], dtype='float32')
+        image = normalize_fn(image)
+        gt    = mx.nd.array(data['gt'], dtype='float32')
+        mask  = mx.nd.array(data['mask'], dtype='float32').expand_dims(axis=0)
+        geo_map = mx.nd.array(data['geo_map'], dtype='float32')
+        return image, gt, mask, geo_map

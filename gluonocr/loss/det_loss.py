@@ -65,7 +65,7 @@ class BalanceCELoss(Loss):
         with mx.autograd.pause():    
             positive_count = int(F.sum(positive).asscalar())
             negative_count = min(int(F.sum(negative).asscalar()),
-                            int(positive_count * self.negative_ratio))
+                                int(positive_count * self.negative_ratio))
         
         loss = -(F.log(pred + self.eps) * label + F.log(1. - pred + self.eps) * (1. - label))
         negative_loss = (loss * negative).reshape((0, 0, -1))
@@ -75,13 +75,13 @@ class BalanceCELoss(Loss):
 
         positive_loss = loss * positive
         balance_loss  = (F.sum(positive_loss, axis=self._batch_axis, exclude=True) + \
-                        F.sum(negative_loss, axis=self._batch_axis, exclude=True)) / \
-                        (positive_count + negative_count + self.eps)
+                         F.sum(negative_loss, axis=self._batch_axis, exclude=True)) / \
+                          (positive_count + negative_count + self.eps)
         return balance_loss
 
 class DBLoss(Loss):
     def __init__(self, eps=1e-6, l1_scale=10, bce_scale=5, weight=1., batch_axis=0, **kwargs):
-        super(L1BalanceCELoss, self).__init__(weight, batch_axis, **kwargs)
+        super(DBLoss, self).__init__(weight, batch_axis, **kwargs)
 
         self.l1_scale  = l1_scale
         self.bce_scale = bce_scale
@@ -91,7 +91,7 @@ class DBLoss(Loss):
 
     def forward(self, pred, batch):
         bce_loss = self.bce_loss(pred['binary'], batch['gt'], batch['mask'])
-        metrics = dict(bce_loss=bce_loss)
+        metrics  = dict(bce_loss=bce_loss)
         if 'thresh' in pred:
             l1_loss = self.l1_loss(pred['thresh'], batch['thresh_map'], batch['thresh_mask'])
             metrics['l1_loss'] = l1_loss
@@ -103,8 +103,28 @@ class DBLoss(Loss):
         return loss, metrics
 
 class EASTLoss(Loss):
-    def __init__(self, eps=1e-6, weight=1., batch_axis=0, **kwargs):
-        super(L1BalanceCELoss, self).__init__(weight, batch_axis, **kwargs)
+    def __init__(self, alpha=1.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
+        super(EASTLoss, self).__init__(weight, batch_axis, **kwargs)
+        self.alpha = alpha
+        self.dice_loss = DiceLoss(eps=eps)
 
     def forward(self, pred, batch):
-        pass
+        f_score = pred['score']
+        f_geo   = pred['geo_map']
+        l_score = batch['gt']
+        l_geo   = batch['geo_map']
+        l_mask  = batch['mask']
+        dice_loss = self.dice_loss(f_score, l_score, l_mask)
+        f_geo_split = f_geo.slice_axis(axis=1, begin=0, end=None)
+        l_geo_split = l_geo.slice_axis(axis=1, begin=0, end=None)
+        smooth_l1 = 0
+        for i in range(8):
+            in_loss = mx.nd.abs(l_geo_split[i] - f_geo_split[i])
+            in_loss = mx.nd.where(in_loss > l_score, in_loss - 0.5, mx.nd.square(in_loss))
+            out_loss = l_geo_split[-1] / 8 * in_loss * l_score
+            smooth_l1 += out_loss
+        
+        smooth_l1_loss = mx.nd.mean(smooth_l1 * l_score, axis=self._batch_axis, exclude=True)
+        loss = self.alpha * dice_loss + smooth_l1_loss
+        metrics = dict(dice_loss=dice_loss, smooth_l1_loss=smooth_l1_loss)
+        return loss, metrics

@@ -105,7 +105,7 @@ class DBLoss(Loss):
 class EASTLoss(Loss):
     def __init__(self, alpha=1.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
         super(EASTLoss, self).__init__(weight, batch_axis, **kwargs)
-        self.alpha = alpha
+        self._alpha = alpha
         self.dice_loss = DiceLoss(eps=eps)
 
     def forward(self, pred, batch):
@@ -115,16 +115,15 @@ class EASTLoss(Loss):
         l_geo   = batch['geo_map']
         l_mask  = batch['mask']
         dice_loss = self.dice_loss(f_score, l_score, l_mask)
-        f_geo_split = f_geo.slice_axis(axis=1, begin=0, end=None)
-        l_geo_split = l_geo.slice_axis(axis=1, begin=0, end=None)
-        smooth_l1 = 0
-        for i in range(8):
-            in_loss = mx.nd.abs(l_geo_split[i] - f_geo_split[i])
-            in_loss = mx.nd.where(in_loss > l_score, in_loss - 0.5, mx.nd.square(in_loss))
-            out_loss = l_geo_split[-1] / 8 * in_loss * l_score
-            smooth_l1 += out_loss
-        
-        smooth_l1_loss = mx.nd.mean(smooth_l1 * l_score, axis=self._batch_axis, exclude=True)
-        loss = self.alpha * dice_loss + smooth_l1_loss
-        metrics = dict(dice_loss=dice_loss, smooth_l1_loss=smooth_l1_loss)
+        norm_weight = l_geo.slice_axis(axis=1, begin=8, end=None)
+        norm_weight = mx.nd.repeat(norm_weight, repeats=8, axis=1)
+        l_geo    = l_geo.slice_axis(axis=1, begin=0, end=8)
+        l_score  = mx.nd.repeat(l_score, repeats=8, axis=1)
+        l1_loss  = mx.nd.abs(l_geo - f_geo)
+        l1_loss  = mx.nd.where(l1_loss > l_score, l1_loss - 0.5, mx.nd.square(l1_loss))
+        l1_loss  = norm_weight*l1_loss*l_score/8
+        l1_loss  = mx.nd.mean(mx.nd.sum(l1_loss, axis=1), axis=self._batch_axis, exclude=True)
+
+        loss = self._alpha * dice_loss + l1_loss
+        metrics = dict(dice_loss=dice_loss, smooth_l1_loss=l1_loss)
         return loss, metrics

@@ -66,6 +66,9 @@ def parse_args():
                         help='Training images. Use -1 to automatically get the number.')
     parser.add_argument('--syncbn', action='store_true',
                         help='Use synchronize BN across devices.')
+    parser.add_argument('--export-model', action='store_true',
+                        help='export model')
+
     args = parser.parse_args()
     args.save_prefix = args.save_prefix + '_'.join(('crnn', args.network+str(args.num_layers)))
     args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'

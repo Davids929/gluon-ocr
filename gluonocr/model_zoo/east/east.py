@@ -3,16 +3,19 @@ from mxnet.gluon import nn
 import mxnet as mx
 
 class EAST(nn.HybridBlock):
-    def __init__(self, stages, channels, norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
+    def __init__(self, stages, channels=[128, 128, 128, 32], 
+                 norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
         
         super(EAST, self).__init__(**kwargs)
         self.norm_layer  = norm_layer
         self.norm_kwargs = norm_kwargs
 
         with self.name_scope():
-            self.stages = stages
+            self.stages = nn.HybridSequential()
             self.ups    = nn.HybridSequential()
             self.convs  = nn.HybridSequential()
+            for i in range(len(stages)):
+                self.stages.add(stages[i])
             for i in range(3):
                 self.convs.add(self._make_layers(channels[i]))
             self.predictor = nn.HybridSequential()
@@ -23,7 +26,7 @@ class EAST(nn.HybridBlock):
 
     def _make_layers(self, channel, ksize=3, stride=1, padding=1, act_type='relu'):
         layer = nn.HybridSequential()
-        layer.add(nn.Conv2D(channel))
+        layer.add(nn.Conv2D(channel, 1, 1))
         layer.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))       
         layer.add(nn.Activation(act_type))
         layer.add(nn.Conv2D(channel, ksize, stride, padding))
@@ -39,15 +42,15 @@ class EAST(nn.HybridBlock):
         feats = feats[::-1]
         h = feats[0]
         for i in range(3):
-            h = F.contrib.BilinearResize2D(feats[0], like=feats[i+1])
-            h = F.concat(h, feats[i+1], axis=1)
+            h = F.contrib.BilinearResize2D(h, like=feats[i+1], mode='like')
+            h = F.concat(h, feats[i+1], dim=1)
             h = self.convs[i](h)
 
         pred = self.predictor(h)
         scores = pred.slice_axis(axis=1, begin=0, end=1)
         geometrys = pred.slice_axis(axis=1, begin=1, end=None)
         scores = F.sigmoid(scores)
-        geometrys = F.sigmoid(geometrys)
+        geometrys = (F.sigmoid(geometrys) - 0.5) * 2 * 800
         return scores, geometrys
 
 def get_east(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),

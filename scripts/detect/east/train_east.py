@@ -3,22 +3,21 @@ import cv2
 import os
 import sys
 import logging
+import warnings
 import time
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon.data import DataLoader
-import gluoncv as gcv
-from gluoncv.utils import LRScheduler, LRSequential
+from gluoncv import utils as gutils 
 
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
 from gluonocr.model_zoo import get_east
 from gluonocr.data import EASTDataset 
 from gluonocr.data import PointAugmenter
 from gluonocr.loss import EASTLoss
-from config import parse_args
+from config import args
 
-args = parse_args()
-gcv.utils.random.seed(args.seed)
+gutils.random.seed(args.seed)
 
 class Trainer(object):
     def __init__(self):
@@ -31,14 +30,13 @@ class Trainer(object):
             self.async_net = get_east(args.network, args.num_layers, pretrained_base=False)  # used by cpu worker
         else:
             self.net = get_east(args.network, args.num_layers, pretrained_base=True) 
-            self.async_net = net
+            self.async_net = self.net
 
         model_name = '%s-%s%d-east'%(args.dataset_name, args.network, args.num_layers)
         self.train_dataloader, self.val_dataloader = self.get_dataloader()
         if not os.path.exists(args.save_prefix):
             os.mkdir(args.save_prefix)
         args.save_prefix += model_name
-        self.net.hybridize()
         if args.export_model:
             self.export_model()
         self.init_model()
@@ -59,7 +57,7 @@ class Trainer(object):
                 self.async_net.initialize(init=mx.init.Xavier())
 
     def get_dataloader(self):
-        augment = PointAugmenter(args.augment_configs)
+        augment = PointAugmenter()
         train_dataset = EASTDataset(args.train_img_dir, 
                                     args.train_lab_dir,
                                     augment,
@@ -113,20 +111,21 @@ class Trainer(object):
             tic = time.time()
             btic = time.time()
             self.net.hybridize()
+            
             for i, batch in enumerate(self.train_dataloader):
                 data  = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
                 score = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
                 mask  = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 geo_map = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
-                sum_losses, bce_losses, l1_losses = [], [], []
+                sum_losses, dice_losses, l1_losses = [], [], []
                 with mx.autograd.record():
                     for d, s, m, gm in zip(data, score, mask, geo_map):
                         pred_score, pred_geo = self.net(d)
                         pred = {'score':pred_score, 'geo_map':pred_geo}
                         lab  = {'gt':s, 'mask':m, 'geo_map':gm}
-                        loss, metrics = self.loss(pred, lab)
+                        loss, metric = self.loss(pred, lab)
                         sum_losses.append(loss)
-                        bce_losses.append(metric['bce_loss'])
+                        dice_losses.append(metric['dice_loss'])
                         l1_losses.append(metric['l1_loss'])
                     mx.autograd.backward(sum_losses)
                 trainer.step(1)
@@ -139,7 +138,7 @@ class Trainer(object):
                     name1, loss1 = self.l1_loss.get()
                     name2, loss2 = self.dice_loss.get()
                     logger.info('[Epoch {}][Batch {}], LR: {:.2E}, Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}, {}={:.3f}'.format(
-                        epoch, i+1, self.trainer.learning_rate, args.batch_size/(time.time()-btic), name0, loss0, name1, loss1, name2, loss2))
+                        epoch, i+1, trainer.learning_rate, args.batch_size/(time.time()-btic), name0, loss0, name1, loss1, name2, loss2))
                 btic = time.time()
             name0, loss0 = self.sum_loss.get()
             name1, loss1 = self.l1_loss.get()
@@ -169,16 +168,16 @@ class Trainer(object):
             labs = [gluon.utils.split_and_load(batch[it], ctx_list=self.ctx, batch_axis=0) for it in range(1, 4)]
             for it, x in enumerate(data):
                 score, geo_map = self.net(x)
-                pred = {'score':pred_score, 'geo_map':pred_geo}
+                pred = {'score':score, 'geo_map':geo_map}
                 lab  = {'gt':labs[0][it], 'mask':labs[1][it], 'geo_map':labs[2][it]}
                 loss, metric = self.loss(pred, lab)
                 self.sum_loss.update(0, loss)
                 self.l1_loss.update(0, metric['l1_loss'])
-                self.dice_loss.update(0, metric['thresh_loss'])
+                self.dice_loss.update(0, metric['dice_loss'])
         
         name0, loss0 = self.sum_loss.get()
         name1, loss1 = self.l1_loss.get()
-        name1, loss2 = self.dice_loss.get()
+        name2, loss2 = self.dice_loss.get()
         
         logger.info('Evaling cost: {:.3f}, {}={:.3f}, {}={:.3f}, {}={:.3f}'.format(
                     time.time()-tic, name0, loss0, name1, loss1, name2, loss2))
@@ -195,3 +194,7 @@ class Trainer(object):
         self.net.export(args.save_prefix, epoch=0)
         print('Successfully export model!')
         sys.exit()
+
+if __name__ == '__main__':
+    trainer = Trainer()
+    trainer.train()

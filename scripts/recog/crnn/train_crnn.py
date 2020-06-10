@@ -24,24 +24,26 @@ class Trainer(object):
         ctx = [mx.gpu(int(i)) for i in args.gpus.split(',') if i.strip()]
         self.ctx = ctx if ctx else [mx.cpu()]
         self.train_dataloader, self.val_dataloader = self.get_dataloader()
+        # load voc size
+        voc_size = self.train_dataloader._dataset.voc_size
         if args.syncbn and len(self.ctx) > 1:
             self.net = get_crnn(args.network, args.num_layers, 
-                                voc_size=self.voc_size+1, pretrained_base=True, 
+                                voc_size=voc_size+1, pretrained_base=True, 
                                 norm_layer=gluon.contrib.nn.SyncBatchNorm,
                                 norm_kwargs={'num_devices': len(self.ctx)})
         
             self.async_net = get_crnn(args.network, args.num_layers, pretrained_base=False,
-                                      voc_size=self.voc_size+1)  # used by cpu worker
+                                      voc_size=voc_size+1)  # used by cpu worker
         else:
-            self.net = get_crnn(args.network, args.num_layers, pretrained_base=False,
-                                voc_size=self.voc_size+1)
+            self.net = get_crnn(args.network, args.num_layers, pretrained_base=True,
+                                voc_size=voc_size+1)
             self.async_net = self.net
         self.net.hybridize()
         self.init_model()
         self.net.collect_params().reset_ctx(self.ctx)
         self.loss = gluon.loss.CTCLoss()
         self.loss_metric = mx.metric.Loss('CTCLoss')
-        self.acc_metric  = RecogAccuracy(self.voc_size+1, ctc_mode=True)
+        self.acc_metric  = RecogAccuracy(voc_size+1, ctc_mode=True)
 
     def init_model(self):
         if args.resume.strip():
@@ -68,8 +70,7 @@ class Trainer(object):
                                    short_side=args.short_side,
                                    fix_width=args.fix_width,
                                    max_len=args.max_len)
-        # load voc size
-        self.voc_size = train_dataset.voc_size
+        
         if args.bucket_mode:
             train_sampler = BucketSampler(args.batch_size, train_dataset.bucket_dict,
                                         shuffle=True, last_batch='discard')
@@ -163,11 +164,10 @@ class Trainer(object):
             name2, loss2 = self.loss_metric.get()
             logger.info('[Epoch {}] Training cost: {:.3f}, {}={:.3f}, {}={:.3f}'.format(
                 epoch, (time.time()-tic), name1, acc1, name2, loss2))
-            if not (epoch + 1) % args.val_interval:
+            if not epoch % args.val_interval:
                 name, current_acc = self.evaluate()
                 logger.info('[Epoch {}] Validation: {}={:.3f}'.format(epoch, name, current_acc))
-            else:
-                current_acc = 0.0
+            
             if current_acc > best_acc[0]:
                 best_acc[0] = current_acc
                 self.net.save_parameters('{:s}_best.params'.format(args.save_prefix, epoch, current_acc))

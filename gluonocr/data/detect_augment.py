@@ -17,7 +17,13 @@ class MaskAugmenter(object):
     def get_aug_seq(self, configs):
         seqence = []
         for cfg in configs:
-            seqence.append(getattr(iaa, cfg[0]))(**cfg[1])
+            fn = getattr(iaa, cfg[0])
+            if isinstance(cfg[1], list):
+                seqence.append(fn(*cfg[1]))
+            elif isinstance(cfg[1], dict):
+                seqence.append(fn(**cfg[1]))
+            else:
+                raise ValueError("Augmenter parameter must be dict or list.")
         seq = iaa.Sequential(seqence, random_order=True)
         return seq
 

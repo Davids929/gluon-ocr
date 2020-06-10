@@ -8,12 +8,12 @@ def parse_args():
                         help="Base network name which serves as feature extraction base.")
     parser.add_argument('--num-layers', type=int, default=34,
                         help="The number layers of base network.")
-    parser.add_argument('--dataset-name', type=str, default='icdar15',
+    parser.add_argument('--dataset-name', type=str, default='receipt',
                         help='The name of training dataset.')
-    parser.add_argument('--train-img-dir', type=str)
-    parser.add_argument('--train-lab-dir', type=str)
-    parser.add_argument('--val-img-dir', type=str, default='')
-    parser.add_argument('--val-lab-dir', type=str, default='')
+    parser.add_argument('--train-img-dir', type=str, default='/home/idcard/data/receipts/detect_data/train_img')
+    parser.add_argument('--train-lab-dir', type=str, default='/home/idcard/data/receipts/detect_data/train_lab')
+    parser.add_argument('--val-img-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_img')
+    parser.add_argument('--val-lab-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_lab')
     parser.add_argument('--data-shape', type=int, default=640,
                         help="Input data shape, use 640.")
     
@@ -59,12 +59,13 @@ def parse_args():
     parser.add_argument('--val-interval', type=int, default=1,
                         help='Epoch interval for validation, increase the number will reduce the '
                              'training time if validation is slow.')
+    parser.add_argument('--syncbn', action='store_true',
+                        help='Use synchronize BN across devices.')
     parser.add_argument('--export-model', action='store_true',
                     help='export model')
     parser.add_argument('--seed', type=int, default=233,
                         help='Random seed to be fixed.')
 
-    iaa.Resize
     args = parser.parse_args()
     args.augment_args = [['Fliplr', {'p':0.5}], 
                          ['Flipud', {'p':0.3}],
@@ -74,3 +75,5 @@ def parse_args():
                          ['Resize', {'size':[1.0, 2.0]}],
                          ]
     return args
+
+args = parse_args()

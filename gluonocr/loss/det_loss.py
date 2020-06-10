@@ -106,8 +106,8 @@ class EASTLoss(Loss):
     def __init__(self, alpha=1.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
         super(EASTLoss, self).__init__(weight, batch_axis, **kwargs)
         self._alpha = alpha
-        self.dice_loss = DiceLoss(eps=eps)
-
+        self.dice_loss = BalanceCELoss(eps=eps)
+        #self.bce_loss  = BalanceCELoss()
     def forward(self, pred, batch):
         f_score = pred['score']
         f_geo   = pred['geo_map']
@@ -125,5 +125,5 @@ class EASTLoss(Loss):
         l1_loss  = mx.nd.mean(mx.nd.sum(l1_loss, axis=1), axis=self._batch_axis, exclude=True)
 
         loss = self._alpha * dice_loss + l1_loss
-        metrics = dict(dice_loss=dice_loss, smooth_l1_loss=l1_loss)
+        metrics = dict(dice_loss=dice_loss, l1_loss=l1_loss)
         return loss, metrics

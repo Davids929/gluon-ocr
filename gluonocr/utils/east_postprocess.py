@@ -71,14 +71,13 @@ class EASTPostPocess(object):
         else:
             return p[[0, 3, 2, 1]]
 
-    def __call__(self, outs_dict, ratio_list):
-        score_list = outs_dict['f_score']
-        geo_list = outs_dict['f_geo']
+    def __call__(self, scores, geo_maps, ratio_list):
+
         img_num = len(ratio_list)
         dt_boxes_list = []
         for ino in range(img_num):
-            score = score_list[ino]
-            geo = geo_list[ino]
+            score = scores[ino]
+            geo   = geo_maps[ino]
             boxes = self.detect(
                 score_map=score,
                 geo_map=geo,
@@ -89,8 +88,8 @@ class EASTPostPocess(object):
             if len(boxes) > 0:
                 ratio_h, ratio_w = ratio_list[ino]
                 boxes = boxes[:, :8].reshape((-1, 4, 2))
-                boxes[:, :, 0] /= ratio_w
-                boxes[:, :, 1] /= ratio_h
+                boxes[:, :, 0] *= ratio_w
+                boxes[:, :, 1] *= ratio_h
                 for i_box, box in enumerate(boxes):
                     box = self.sort_poly(box.astype(np.int32))
                     if np.linalg.norm(box[0] - box[1]) < 5 \

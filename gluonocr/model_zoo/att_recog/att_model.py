@@ -6,10 +6,21 @@ from mxnet.gluon import nn
 from .att_encoder import *
 from .att_decoder import *
 
-class AttModel(object):
-    def __init__(self, encoder_kwargs, decoder_kwargs):
-        self.encoder = get_encoder(**encoder_kwargs)
-        self.decoder = AttDecoder(**decoder_kwargs)
+class AttModel(nn.HybridBlock):
+    def __init__(self, encoder, decoder, **kwargs):
+        super(AttModel, self).__init__(**kwargs)
+        self.start_symbol = 0
+        self.end_symbol   = 1
+        with self.name_scope():
+            self.encoder = encoder
+            self.decoder = decoder
+
+    def hybrid_forward(self, F, x, mask, tag_input, *args):
+        en_out, en_proj = self.encoder(x, mask)
+        with mx.autograd.pause():
+            mx.symbol.slice_axis
+            mx.nd.sum_axis
+            mx.nd.contrib.while_loop
 
     def train(self, x, mask, tag_input):
         en_out, en_proj = self.encoder(x, mask)
@@ -50,15 +61,6 @@ class AttModel(object):
             return self.train(*args)
         else:
             return self.test(*args)
-    
-    def export(self, path, **kwargs):
-        self.encoder.export(path + '-encoder', **kwargs)
-        self.decoder.export(path + '-decoder', **kwargs)
 
-    def initalize(self, **kwargs):
-        self.encoder.initalize(**kwargs)
-        self.decoder.initalize(**kwargs)
-    
-    def hybridlize(self, **kwargs):
-        self.encoder.hybridlize(**kwargs)
-        self.decoder.hybridlize(**kwargs)
+def get_att_model():
+    pass

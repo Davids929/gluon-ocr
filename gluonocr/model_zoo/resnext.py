@@ -221,7 +221,8 @@ resnext_spec = {50: [3, 4, 6, 3],
 
 
 # Constructor
-def get_resnext(num_layers, used_recog=False, cardinality=32, bottleneck_width=4, use_se=False, deep_stem=False,
+def get_resnext(num_layers, strides=[(1,1), (2,2), (2,2), (2,2)],
+                cardinality=32, bottleneck_width=4, use_se=False, deep_stem=False,
                 avg_down=False, pretrained=False, ctx=cpu(),
                 root=os.path.join('~', '.mxnet', 'models'), **kwargs):
     r"""ResNext model from `"Aggregated Residual Transformations for Deep Neural Network"
@@ -252,10 +253,7 @@ def get_resnext(num_layers, used_recog=False, cardinality=32, bottleneck_width=4
     assert num_layers in resnext_spec, \
         "Invalid number of layers: %d. Options are %s" % (
             num_layers, str(resnext_spec.keys()))
-    if used_recog:
-        strides = [(1,1), (2,2), (2,1), (2,1)]
-    else:
-        strides = [(1,1), (2,2), (2,2), (2,2)]
+   
     layers = resnext_spec[num_layers]
     net = ResNext(layers, cardinality, bottleneck_width, strides, use_se=use_se, deep_stem=deep_stem,
                   avg_down=avg_down, **kwargs)

@@ -50,7 +50,7 @@ def parse_args():
                         help='SGD momentum, default is 0.9')
     parser.add_argument('--wd', type=float, default=0.0001,
                         help='Weight decay, default is 5e-4')
-    parser.add_argument('--log-interval', type=int, default=20,
+    parser.add_argument('--log-interval', type=int, default=50,
                         help='Logging mini-batch interval. Default is 100.')
     parser.add_argument('--save-prefix', type=str, default='./checkpoint/',
                         help='Saving parameter prefix')

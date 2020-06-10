@@ -131,15 +131,10 @@ class DBDataset(Dataset):
 class EASTDataset(DBDataset):
     def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
                  min_text_size=8, shrink_ratio=0.4, debug=False):
-        self.img_dir = img_dir
-        self.lab_dir = lab_dir
-        self.debug   = debug
-        self.img_size     = img_size
-        self.augment_fns  = augment_fns
-        self.shrink_ratio = shrink_ratio
-        self.min_text_size= min_text_size 
-        self.imgs_type   = ['jpg', 'jpeg', 'png', 'bmp']
-        self.imgs_list, self.labs_list = self._get_items(img_dir, lab_dir)
+        super(EASTDataset, self).__init__(img_dir, lab_dir, augment_fns=augment_fns, 
+                                          img_size=img_size,min_text_size=min_text_size, 
+                                          shrink_ratio=shrink_ratio, debug=debug)
+       
         self.get_label  = MakeSegDetectorData(min_text_size=min_text_size, 
                                               shrink_ratio=shrink_ratio,
                                               gen_geometry=True)

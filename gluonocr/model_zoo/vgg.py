@@ -95,8 +95,8 @@ vgg_spec = {11: ([1, 1, 2, 2, 2], [64, 128, 256, 512, 512]),
 
 
 # Constructors
-def get_vgg(num_layers, used_recog=False, pretrained=False, ctx=cpu(),
-            root='~/.mxnet/models', **kwargs):
+def get_vgg(num_layers, strides=[(2,2), (2,2), (2,2), (2,2)], 
+            pretrained=False, ctx=cpu(), root='~/.mxnet/models', **kwargs):
     r"""VGG model from the `"Very Deep Convolutional Networks for Large-Scale Image Recognition"
     <https://arxiv.org/abs/1409.1556>`_ paper.
 
@@ -112,10 +112,8 @@ def get_vgg(num_layers, used_recog=False, pretrained=False, ctx=cpu(),
     root : str, default $MXNET_HOME/models
         Location for keeping the model parameters.
     """
-    if used_recog:
-        strides = [(2,2), (2,2), (2,2), (2,1), (2,1)]
-    else:
-        strides = [(2,2), (2,2), (2,2), (2,2), (2,2)]
+    
+    strides = [(2,2)] + strides
     layers, filters = vgg_spec[num_layers]
     net = VGG(layers, filters, strides, **kwargs)
     if pretrained:

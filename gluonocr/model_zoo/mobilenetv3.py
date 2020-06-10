@@ -222,7 +222,8 @@ class _MobileNetV3(HybridBlock):
         return x
 
 
-def get_mobilenet_v3(model_name, used_recog=False, multiplier=1., pretrained=False, ctx=cpu(),
+def get_mobilenet_v3(model_name, strides=[(2,2), (2,2), (2,2), (2,2)],  
+                     multiplier=1., pretrained=False, ctx=cpu(),
                      root='~/.mxnet/models', norm_layer=BatchNorm, norm_kwargs=None, **kwargs):
     r"""MobileNet model from the
     `"Searching for MobileNetV3"
@@ -251,26 +252,22 @@ def get_mobilenet_v3(model_name, used_recog=False, multiplier=1., pretrained=Fal
         for :class:`mxnet.gluon.contrib.nn.SyncBatchNorm`.
     """
 
-    ss = 2
-    if used_recog:
-        ss = 1
-
     if model_name == "large":
         cfg = [
             # k, exp, c,  se,     nl,  s,
             [3, 16, 16, False, 'relu', (1,1)],
-            [3, 64, 24, False, 'relu', (2,2)],
+            [3, 64, 24, False, 'relu', strides[0]],
             [3, 72, 24, False, 'relu', (1,1)],
-            [5, 72, 40, True, 'relu', (2,2)],
+            [5, 72, 40, True, 'relu', strides[1]],
             [5, 120, 40, True, 'relu', (1,1)],
             [5, 120, 40, True, 'relu', (1,1)],
-            [3, 240, 80, False, 'hard_swish', (2,ss)],
+            [3, 240, 80, False, 'hard_swish', strides[2]],
             [3, 200, 80, False, 'hard_swish', (1,1)],
             [3, 184, 80, False, 'hard_swish', (1,1)],
             [3, 184, 80, False, 'hard_swish', (1,1)],
             [3, 480, 112, True, 'hard_swish', (1,1)],
             [3, 672, 112, True, 'hard_swish', (1,1)],
-            [5, 672, 160, True, 'hard_swish', (2,ss)],
+            [5, 672, 160, True, 'hard_swish', strides[3]],
             [5, 960, 160, True, 'hard_swish', (1,1)],
             [5, 960, 160, True, 'hard_swish', (1,1)],
             ]
@@ -279,15 +276,15 @@ def get_mobilenet_v3(model_name, used_recog=False, multiplier=1., pretrained=Fal
     elif model_name == "small":
         cfg = [
             # k, exp, c,  se,     nl,  s,
-            [3, 16, 16, True, 'relu', (2,2)],
-            [3, 72, 24, False, 'relu', (2,2)],
+            [3, 16, 16, True, 'relu', strides[0]],
+            [3, 72, 24, False, 'relu', strides[0]],
             [3, 88, 24, False, 'relu', (1,1)],
-            [5, 96, 40, True, 'hard_swish', (2,ss)],
+            [5, 96, 40, True, 'hard_swish', strides[0]],
             [5, 240, 40, True, 'hard_swish', (1,1)],
             [5, 240, 40, True, 'hard_swish', (1,1)],
             [5, 120, 48, True, 'hard_swish', (1,1)],
             [5, 144, 48, True, 'hard_swish', (1,1)],
-            [5, 288, 96, True, 'hard_swish', (2,ss)],
+            [5, 288, 96, True, 'hard_swish', strides[0]],
             [5, 576, 96, True, 'hard_swish', (1,1)],
             [5, 576, 96, True, 'hard_swish', (1,1)],
             ]

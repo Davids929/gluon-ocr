@@ -22,7 +22,8 @@ class AttDecoder(nn.HybridBlock):
             self.dropout = nn.Dropout(dropout)
             self.fc      = nn.Dense(voc_size, flatten=False)
 
-    def hybrid_forward(self, F, en_out, en_proj, en_mask, h, c, cur_input):
+    def hybrid_forward(self, F, cur_input, states):
+        en_out, en_proj, en_mask, h, c = states
         state = [h, c]
         pre_output_list = F.SliceChannel(h, num_outputs=self.num_layers,
                                          axis=0, squeeze_axis=False)
@@ -36,7 +37,8 @@ class AttDecoder(nn.HybridBlock):
         output = F.concat(lstm_in, lstm_out, dim=2)
         output = self.dropout(output)
         output = self.fc(output)
-        return output, state[0], state[1]
+        states = [en_out, en_proj, en_mask, state[0], state[1]]
+        return output, states
 
     def begin_state(self, batch_size, seq_len, ctx):
         h_state = nd.zeros(shape=(self.num_layers, batch_size, self.hidden_dim), dtype='float32', ctx=ctx)

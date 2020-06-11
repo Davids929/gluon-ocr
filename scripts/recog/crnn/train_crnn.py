@@ -136,8 +136,10 @@ class Trainer(object):
                 tag_lab  = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 tag_mask = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
                 l_list = []
+               
                 with mx.autograd.record():
                     for sd, fm, tl, tm in zip(src_data, fea_mask, tag_lab, tag_mask):
+                        fm  = mx.nd.reshape(fm[:, :, ::32, ::4], (0, 0, -1))
                         out = self.net(sd, fm)
                         with mx.autograd.pause():
                             bs, seq_len = out.shape[:2]
@@ -150,7 +152,7 @@ class Trainer(object):
                         l_list.append(loss)
                     mx.autograd.backward(l_list)
                 trainer.step(args.batch_size)
-                mx.nd.waitall()
+                #mx.nd.waitall()
                 self.acc_metric.update(out, tl, tm)
                 self.loss_metric.update(0, l_list)
                 if args.log_interval and not (i + 1) % args.log_interval:
@@ -183,6 +185,7 @@ class Trainer(object):
         for i, data in enumerate(self.val_dataloader):
             s_data = data[0].as_in_context(self.ctx[0])
             s_mask = data[1].as_in_context(self.ctx[0])
+            s_mask = mx.nd.reshape(s_mask[:, :, ::32, ::4], (0, 0, -1))
             t_label = data[2]
             t_mask = data[3]
             out  = self.net(s_data, s_mask)

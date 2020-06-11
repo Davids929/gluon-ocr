@@ -14,9 +14,9 @@ class CRNN(nn.HybridBlock):
             self.stages = stages
             if use_stn:
                 self.stn = STN()
-        self.lstm = gluon.rnn.LSTM(hidden_size, num_layers, layout='NTC',
-                                   dropout=dropout, bidirectional=use_bilstm)
-        self.fc   = nn.Dense(voc_size, flatten=False)
+            self.lstm = gluon.rnn.LSTM(hidden_size, num_layers, layout='NTC',
+                                    dropout=dropout, bidirectional=use_bilstm)
+            self.fc   = nn.Dense(voc_size, flatten=False)
 
     def hybrid_forward(self, F, x, mask):
         if self.use_stn:

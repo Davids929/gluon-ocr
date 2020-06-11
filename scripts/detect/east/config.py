@@ -6,7 +6,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train EAST.')
     parser.add_argument('--network', type=str, default='resnet',
                         help="Base network name which serves as feature extraction base.")
-    parser.add_argument('--num-layers', type=int, default=34,
+    parser.add_argument('--num-layers', type=int, default=50,
                         help="The number layers of base network.")
     parser.add_argument('--dataset-name', type=str, default='receipt',
                         help='The name of training dataset.')
@@ -47,7 +47,7 @@ def parse_args():
     parser.add_argument('--warmup-epochs', type=int, default=2,
                         help='number of warmup epochs.')
     parser.add_argument('--momentum', type=float, default=0.9,
-                        help='SGD momentum, default is 0.9')
+                        help='SGD momentum, default is 0.9.')
     parser.add_argument('--wd', type=float, default=0.0001,
                         help='Weight decay, default is 5e-4')
     parser.add_argument('--log-interval', type=int, default=50,

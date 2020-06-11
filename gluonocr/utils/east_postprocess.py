@@ -6,10 +6,10 @@ class EASTPostPocess(object):
     The post process for EAST.
     """
 
-    def __init__(self, params):
-        self.score_thresh = params['score_thresh']
-        self.cover_thresh = params['cover_thresh']
-        self.nms_thresh = params['nms_thresh']
+    def __init__(self, score_thresh=0.8, cover_thresh=0.1, nms_thresh=0.2):
+        self.score_thresh = score_thresh
+        self.cover_thresh = cover_thresh
+        self.nms_thresh   = nms_thresh
 
     def restore_rectangle_quad(self, origin, geometry):
         """
@@ -35,6 +35,7 @@ class EASTPostPocess(object):
         geo_map = np.swapaxes(geo_map, 1, 0)
         geo_map = np.swapaxes(geo_map, 1, 2)
         # filter the score map
+        
         xy_text = np.argwhere(score_map > score_thresh)
         if len(xy_text) == 0:
             return []

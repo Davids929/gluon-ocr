@@ -1,41 +1,38 @@
-#coding=utf-8
+#!python3
 import argparse
 import os
 import cv2
-import sys
 import numpy as np
 import math
-import time
 import mxnet as mx
 from mxnet import gluon
+import sys
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
-from gluonocr.utils.east_postprocess import EASTPostPocess
+from gluonocr.utils.db_postprocess import DBPostPocess
 
-parser = argparse.ArgumentParser(description='Text Recognition Training')
+parser = argparse.ArgumentParser(description='Text Detection inference.')
 parser.add_argument('--model-path', type=str, help='model file path.')
 parser.add_argument('--params-path', type=str, help='params file path.')
 parser.add_argument('--image-path', type=str, help='image path')
 parser.add_argument('--result-dir', type=str, default='./demo_results/', help='path to save results')
-parser.add_argument('--image-short-side', type=int, default=736,
+parser.add_argument('--image-short-side', type=int, default=768,
                     help='The threshold to replace it in the representers')
-parser.add_argument('--score-thresh', type=float, default=0.8,
+parser.add_argument('--thresh', type=float, default=0.3,
                     help='The threshold to replace it in the representers')
-parser.add_argument('--cover-thresh', type=float, default=0.1,
-                    help='The threshold to replace it in the representers')
-parser.add_argument('--nms-thresh', type=float, default=0.2,
+parser.add_argument('--box-thresh', type=float, default=0.6,
                     help='The threshold to replace it in the representers')
 parser.add_argument('--visualize', action='store_true',
                     help='visualize maps in tensorboard')
 parser.add_argument('--polygon', action='store_true',
                     help='output polygons if true')
-parser.add_argument('--gpu-id', type=str, default='0')
+parser.add_argument('--gpu-id', type=int, default='0')
 
 img_types = ['jpg', 'png', 'jpeg', 'bmp']
 
 class Demo(object):
     def __init__(self, args):
         self.args = args
-        if not args.gpu_id:
+        if args.gpu_id:
             self.ctx = mx.cpu()
         else:
             self.ctx = mx.gpu(int(args.gpu_id))
@@ -44,12 +41,9 @@ class Demo(object):
         
         self.mean = (0.485, 0.456, 0.406)
         self.std  = (0.229, 0.224, 0.225)
-        params    = {'score_thresh':args.score_thresh,
-                     'cover_thresh':args.cover_thresh,
-                     'nms_thresh':args.nms_thresh} 
-        self.postpro = EASTPostPocess(**params)
-        
-    def resize_image(self, img, max_scale=1440):
+        self.struct = DBPostPocess(thresh=args.thresh, box_thresh=args.box_thresh)
+
+    def resize_image(self, img, max_scale=1024):
         height, width, _ = img.shape
         if height < width:
             new_height = self.args.image_short_side
@@ -86,29 +80,25 @@ class Demo(object):
             image_list = [image]
         for image_path in image_list:
             img, origin_shape = self.load_image(image_path)
-            origin_h, origin_w = origin_shape
-            h, w = img.shape[2:]
-            
-            time1 = time.time()
-            score, geo_map = self.net(img)
-            time2 = time.time()
+            origh_h, origin_w = origin_shape
+            outputs = self.net(img)
             print(image_path)
-            score   = score.asnumpy()
-            geo_map = geo_map.asnumpy()
-            ratio_h = origin_h/h
-            ratio_w = origin_w/w
-
-            boxes = self.postpro(score, geo_map, [(ratio_h, ratio_w)])
-            time3 = time.time()
-            print('inference cost time:%.4f, post process cost time:%.4f'%(time2-time1, time3-time2))
-            if len(boxes[0]) == 0:
-                return 0
-            # boxes[:, :, 0] = np.clip(boxes[:, :, 0], 0, origin_w)
-            # boxes[:, :, 1] = np.clip(boxes[:, :, 1], 0, origin_h)
+            if isinstance(outputs, (tuple,list)):
+                pred = outputs[0]
+            else:
+                pred = outputs
+            pred = pred.asnumpy()[0,0]
+            
+            if self.args.polygon:
+                boxes, scores = self.struct.polygons_from_bitmap(pred, origin_w, origh_h)
+            else:
+                boxes, scores = self.struct.boxes_from_bitmap(pred, origin_w, origh_h)
+            
             if not os.path.isdir(self.args.result_dir):
                 os.mkdir(self.args.result_dir)
+        
             if visualize:
-                vis_image = self.visualize(image_path, score[0, 0], boxes[0])
+                vis_image = self.visualize(image_path, pred, boxes)
                 cv2.imwrite(os.path.join(self.args.result_dir, os.path.basename(image_path)), vis_image)
 
     def visualize_heatmap(self, headmap, canvas=None):
@@ -130,7 +120,7 @@ class Demo(object):
         origin_h, origin_w = original_shape[:2]
         heatmap  = cv2.resize(pred, (origin_w, origin_h))
         heatmap  = self.visualize_heatmap(heatmap, original_image)
-        bina_map = pred > args.score_thresh
+        bina_map = pred>self.args.thresh
         bina_map = cv2.resize(bina_map.astype('uint8')*255, (origin_w, origin_h), 
                             interpolation=cv2.INTER_NEAREST)
         bina_map = np.stack([bina_map]*3, axis=-1)
@@ -138,12 +128,10 @@ class Demo(object):
         for box in boxes:
             box = np.array(box).astype(np.int32).reshape(-1, 2)
             cv2.polylines(pred_canvas, [box], True, (0, 255, 0), 2)
-            
         pred_canvas = np.concatenate((pred_canvas, bina_map, heatmap), axis=1)
         return pred_canvas
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    
     demo = Demo(args)
     demo.inference(args.image_path, visualize=args.visualize)

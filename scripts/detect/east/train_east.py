@@ -67,9 +67,10 @@ class Trainer(object):
                                     img_size=(args.data_shape, args.data_shape))
 
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, 
+                                      last_batch='discard', shuffle=True, 
                                       num_workers=args.num_workers, pin_memory=True)
         val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, 
-                                    num_workers=args.num_workers, pin_memory=True)
+                                    num_workers=args.num_workers, last_batch='keep')
         return train_dataloader, val_dataloader
 
     def train(self):
@@ -111,7 +112,6 @@ class Trainer(object):
             tic = time.time()
             btic = time.time()
             self.net.hybridize()
-            
             for i, batch in enumerate(self.train_dataloader):
                 data  = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
                 score = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
@@ -129,7 +129,7 @@ class Trainer(object):
                         l1_losses.append(metric['l1_loss'])
                     mx.autograd.backward(sum_losses)
                 trainer.step(1)
-                mx.nd.waitall()
+                #mx.nd.waitall()
                 self.sum_loss.update(0, sum_losses)
                 self.l1_loss.update(0, l1_losses)
                 self.dice_loss.update(0, dice_losses)
@@ -189,6 +189,7 @@ class Trainer(object):
     def export_model(self):
         data = mx.nd.ones((1, 3, 512, 512), dtype='float32', ctx=self.ctx[0])
         self.net.load_parameters(args.resume.strip())
+        self.net.hybridize()
         self.net.collect_params().reset_ctx(self.ctx)
         pred1 = self.net(data)
         self.net.export(args.save_prefix, epoch=0)

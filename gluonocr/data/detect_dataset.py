@@ -135,9 +135,7 @@ class EASTDataset(DBDataset):
                                           img_size=img_size,min_text_size=min_text_size, 
                                           shrink_ratio=shrink_ratio, debug=debug)
        
-        self.get_label  = MakeSegDetectorData(min_text_size=min_text_size, 
-                                              shrink_ratio=shrink_ratio,
-                                              gen_geometry=True)
+        self.get_label.gen_geometry = True
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.imgs_list[idx])
         lab_path = os.path.join(self.lab_dir, self.labs_list[idx])

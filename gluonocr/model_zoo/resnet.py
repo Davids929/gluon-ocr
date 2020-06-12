@@ -566,8 +566,7 @@ def get_resnet(version, num_layers, strides=[(1,1), (2,2), (2,2), (2,2)],
         net.synset = attrib.synset
         net.classes = attrib.classes
         net.classes_long = attrib.classes_long
-    else:
-        net.initialize()
+    
     return net
 
 def resnet18_v1(**kwargs):

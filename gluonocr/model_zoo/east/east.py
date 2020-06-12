@@ -22,7 +22,8 @@ class EAST(nn.HybridBlock):
             self.predictor.add(nn.Conv2D(channels[-1], 3, 1, 1))
             self.predictor.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
             self.predictor.add(nn.Activation('relu'))
-            self.predictor.add(nn.Conv2D(9, 1))
+            self.pred_score = nn.Conv2D(1, 1, 1)
+            self.pred_geo   = nn.Conv2D(8, 1, 1)
 
     def _make_layers(self, channel, ksize=3, stride=1, padding=1, act_type='relu'):
         layer = nn.HybridSequential()
@@ -47,9 +48,9 @@ class EAST(nn.HybridBlock):
             h = self.convs[i](h)
 
         pred = self.predictor(h)
-        scores = pred.slice_axis(axis=1, begin=0, end=1)
-        geometrys = pred.slice_axis(axis=1, begin=1, end=None)
+        scores = self.pred_score(pred)
         scores = F.sigmoid(scores)
+        geometrys = self.pred_geo(pred)
         geometrys = (F.sigmoid(geometrys) - 0.5) * 2 * 800
         return scores, geometrys
 

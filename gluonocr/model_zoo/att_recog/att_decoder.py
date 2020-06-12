@@ -34,7 +34,7 @@ class AttDecoder(nn.HybridBlock):
         att_out, att_weight = self.attention(att_input, en_proj, en_out, en_mask)
         lstm_in = F.concat(cur_input, att_out, dim=2)
         lstm_out, state = self.lstm(lstm_in, state)
-        #output = F.concat(lstm_in, lstm_out, dim=2)
+        lstm_out = F.concat(lstm_in, lstm_out, dim=2)
         output = self.dropout(lstm_out)
         output = self.fc(output)
         #states = [en_out, en_proj, en_mask, state[0], state[1]]

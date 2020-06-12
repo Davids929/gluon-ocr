@@ -90,8 +90,8 @@ class Trainer(object):
                         step_factor=args.lr_decay, power=2),
             ])
 
-        trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
-            {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler})
+        trainer = gluon.Trainer(self.net.collect_params(), 'adam',
+            {'wd': args.wd, 'lr_scheduler': lr_scheduler}) #'momentum': args.momentum,
 
         # set up logger
         logging.basicConfig()

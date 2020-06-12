@@ -191,11 +191,14 @@ class Trainer(object):
         for i, data in enumerate(self.val_dataloader):
             s_data = data[0].as_in_context(self.ctx[0])
             s_mask = data[1].as_in_context(self.ctx[0])
+            s_mask = mx.nd.reshape(s_mask[:, :, ::32, ::8], (0, 0, -1))
             t_label = data[3]
             t_mask = data[4]
             bs, seq_len = data[2].shape
+            out_len = seq_len//2 if seq>16 else 8
+            targ_inp = self.net.begin_inp(bs, out_len, self.ctx[0])
             states = self.net.begin_state(bs, self.ctx[0])
-            out    = self.net(s_data, s_mask, *states)
+            out    = self.net(s_data, s_mask, tag_inp, *states)
             self.acc_metric.update(out, t_label, t_mask)
         name, acc = self.acc_metric.get()
         self.acc_metric.reset()

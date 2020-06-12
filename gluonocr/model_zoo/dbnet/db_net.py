@@ -100,7 +100,7 @@ def get_db(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
             raise ValueError('The num_layers of moblienetv3 must be 24 or 32.')
         
     else:
-        raise ValueError('Please input right backbone name.')
+        raise ValueError('The %s is not support.'%backbone_name)
     stages = [base_net.features[:ids[0]], 
               base_net.features[ids[0]:ids[1]],
               base_net.features[ids[1]:ids[2]],

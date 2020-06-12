@@ -16,16 +16,16 @@ class AttModel(nn.HybridBlock):
             self.encoder = encoder
             self.decoder = decoder
 
-    def hybrid_forward(self, F, x, mask, h, c, *args):
+    def hybrid_forward(self, F, x, mask, targ_input, h, c):
         en_out, en_proj = self.encoder(x, mask)
         states = [en_out, en_proj, mask,  h, c]
-        
+        tag_input = F.transpose(targ_input, axes=(1, 0)).expand_dims(axis=-1)
+
         def train_func(out, states):
-                outs = self.decoder(out, *states)
-                return outs[0], outs[1:]
+            outs = self.decoder(out, *states)
+            return outs[0], outs[1:]
 
         if mx.autograd.is_training():
-            tag_input = F.transpose(args[0], axes=(1, 0)).expand_dims(axis=-1)
             outputs, states = F.contrib.foreach(train_func, tag_input, states)
             outputs = F.reshape(outputs, shape=(0, -3, 0))
             outputs = F.transpose(outputs, axes=(1, 0, 2))
@@ -37,9 +37,7 @@ class AttModel(nn.HybridBlock):
             pred = F.argmax(pred, axis=-1)
             states = [pred*inp] + list(outs[1:])
             return pred, states
-            
-        tag_input   = F.ones_like(mask)
-        tag_input   = F.transpose(tag_input, axes=(2, 0, 1))
+        
         first_input = F.slice_axis(tag_input, axis=0, begin=0, end=1)
         first_input = F.squeeze(first_input, axis=0)*self.start_symbol
         states = [first_input] + states
@@ -51,8 +49,8 @@ class AttModel(nn.HybridBlock):
     def begin_state(self, *args):
         return self.decoder.begin_state(*args)
 
-    def begin_inp(self, batch_size, seq_len, ctx):
-        inp = mx.nd.ones(shape=(batch_size, seq_len), dtype='float32', ctx=ctx)
+    def begin_inp(self, batch_size, out_len, ctx):
+        inp = mx.nd.ones(shape=(batch_size, out_len), dtype='float32', ctx=ctx)
         inp[:, 0] = self.start_symbol
         return inp
 

@@ -75,7 +75,10 @@ class Demo(object):
         ## decoder lstm state
         h_state = mx.nd.zeros(shape=(2, 1, 512), dtype='float32', ctx=self.ctx)
         c_state = mx.nd.zeros(shape=(2, 1, 512), dtype='float32', ctx=self.ctx)
-        return img, mask, h_state, c_state
+        ## output shape
+        out_len = w//16 if w//16>8 else 8
+        targ_input = mx.nd.ones((1, out_len), dtype='float32', ctx=self.ctx)
+        return img, mask, targ_input, h_state, c_state
     
     def ids2text(self, ids):
         chrs = []

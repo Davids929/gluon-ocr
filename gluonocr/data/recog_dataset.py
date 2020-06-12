@@ -140,7 +140,7 @@ class FixSizeDataset(Dataset):
 class BucketDataset(FixSizeDataset):
     def __init_(self, line_path, voc_path, augment_fn=None, short_side=32, 
                 fix_width=None, max_len=60, start_sym=None, end_sym=None, 
-                split_width_len=128, split_text_len=10,):
+                split_width_len=128, split_text_len=10):
     
         super(BucketDataset, self).__init__(line_path, voc_path, augment_fn=augment_fn, 
                                             short_side=short_side, fix_width=None, max_len=max_len,

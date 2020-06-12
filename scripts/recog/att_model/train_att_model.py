@@ -11,7 +11,7 @@ from mxnet import gluon
 from mxnet.gluon.data import DataLoader
 from gluoncv import utils as gutils
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
-from gluonocr.model_zoo import AttModel
+from gluonocr.model_zoo import get_att_model
 from gluonocr.data import FixSizeDataset, BucketDataset 
 from gluonocr.data import BucketSampler, Augmenter
 from gluonocr.utils.metric import RecogAccuracy
@@ -26,24 +26,31 @@ class Trainer(object):
         self.train_dataloader, self.val_dataloader = self.get_dataloader()
         # load voc size
         voc_size = self.train_dataloader._dataset.voc_size
+        start = self.train_dataloader._dataset.start_sym
+        end   = self.train_dataloader._dataset.end_sym
         if args.syncbn and len(self.ctx) > 1:
-            self.net = get_crnn(args.network, args.num_layers, 
-                                voc_size=voc_size+1, pretrained_base=True, 
-                                norm_layer=gluon.contrib.nn.SyncBatchNorm,
-                                norm_kwargs={'num_devices': len(self.ctx)})
+            self.net = get_att_model(args.network, args.num_layers, 
+                                    voc_size=voc_size, pretrained_base=True, 
+                                    norm_layer=gluon.contrib.nn.SyncBatchNorm,
+                                    norm_kwargs={'num_devices': len(self.ctx)},
+                                    start_symbol=start, end_symbol=end)
         
-            self.async_net = get_crnn(args.network, args.num_layers, pretrained_base=False,
-                                      voc_size=voc_size+1)  # used by cpu worker
+            self.async_net = get_att_model(args.network, args.num_layers, 
+                                    voc_size=voc_size, start_symbol=start, 
+                                    end_symbol=end)  # used by cpu worker
         else:
-            self.net = get_crnn(args.network, args.num_layers, pretrained_base=True,
-                                voc_size=voc_size+1)
+            self.net = get_att_model(args.network, args.num_layers, 
+                                    pretrained_base=True, voc_size=voc_size, 
+                                    start_symbol=start, end_symbol=end)
             self.async_net = self.net
         self.net.hybridize()
+        if args.export_model:
+            self.export_model()
         self.init_model()
         self.net.collect_params().reset_ctx(self.ctx)
-        self.loss = gluon.loss.CTCLoss()
-        self.loss_metric = mx.metric.Loss('CTCLoss')
-        self.acc_metric  = RecogAccuracy(voc_size+1, ctc_mode=True)
+        self.loss = gluon.loss.SoftmaxCELoss()
+        self.loss_metric = mx.metric.Loss('SoftmaxCELoss')
+        self.acc_metric  = RecogAccuracy(voc_size, ctc_mode=False)
 
     def init_model(self):
         if args.resume.strip():
@@ -134,26 +141,24 @@ class Trainer(object):
             self.net.hybridize()
             for i, batch in enumerate(self.train_dataloader):
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
-                fea_mask = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
-                tag_lab  = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
-                tag_mask = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
+                src_mask = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
+                src_targ = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
+                tag_lab  = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
+                tag_mask = gluon.utils.split_and_load(batch[4], ctx_list=self.ctx)
                 l_list = []
                 with mx.autograd.record():
-                    for sd, fm, tl, tm in zip(src_data, fea_mask, tag_lab, tag_mask):
-                        out = self.net(sd, fm)
+                    for sd, sm, st, tl, tm in zip(src_data, src_mask, src_targ, tag_lab, tag_mask):
                         with mx.autograd.pause():
-                            bs, seq_len = out.shape[:2]
-                            tag_len = tl.shape[1]
-                        if tag_len > seq_len:
-                            tl = tl[:, :seq_len]
-                        lab_length  = mx.nd.sum(tm, axis=-1)
-                        pred_length = seq_len*mx.nd.ones((bs), dtype='float32').as_in_context(sd.context)
-                        loss = self.loss(out, tl, pred_length, lab_length)
+                            bs = tl.shape[0]
+                        states = self.net.begin_state(bs, sd.context)
+                        sm = mx.nd.reshape(sm[:,:, ::32, ::8], (0, 0, -1))
+                        outputs = self.net(sd, sm, st, *states)
+                        loss = self.loss(outputs, tl, tm.expand_dims(axis=2))
                         l_list.append(loss)
                     mx.autograd.backward(l_list)
                 trainer.step(args.batch_size)
                 mx.nd.waitall()
-                self.acc_metric.update(out, tl, tm)
+                self.acc_metric.update(outputs, tl, tm)
                 self.loss_metric.update(0, l_list)
                 if args.log_interval and not (i + 1) % args.log_interval:
                     name1, acc1 = self.acc_metric.get()
@@ -182,16 +187,30 @@ class Trainer(object):
 
     def evaluate(self):
         self.acc_metric.reset()
+        self.net.hybridize()
         for i, data in enumerate(self.val_dataloader):
             s_data = data[0].as_in_context(self.ctx[0])
             s_mask = data[1].as_in_context(self.ctx[0])
-            t_label = data[2]
-            t_mask = data[3]
-            out  = self.net(s_data, s_mask)
+            t_label = data[3]
+            t_mask = data[4]
+            bs, seq_len = data[2].shape
+            states = self.net.begin_state(bs, self.ctx[0])
+            out    = self.net(s_data, s_mask, *states)
             self.acc_metric.update(out, t_label, t_mask)
         name, acc = self.acc_metric.get()
         self.acc_metric.reset()
         return name, acc
+
+    def export_model(self):
+        data = mx.nd.ones((1, 3, 32, 128), ctx=self.ctx[0])
+        mask = mx.nd.ones((1, 1, 16), ctx=self.ctx[0])
+        states = self.net.begin_state(1, self.ctx[0])
+        self.net.load_parameters(args.resume.strip())
+        self.net.collect_params().reset_ctx(self.ctx)
+        outs = self.net(data, mask, *states)
+        self.net.export(args.save_prefix)
+        print('Export model successfully.')
+        sys.exit()
 
 if __name__ == '__main__':
     trainer = Trainer()

@@ -507,7 +507,7 @@ class DotProductAttentionCell(AttentionCell):
 
 def _get_attention_cell(attention_cell, units=None,
                         scaled=True, num_heads=None,
-                        use_bias=False, dropout=0.0):
+                        use_bias=False, dropout=0.0, **kwargs):
     """
 
     Parameters
@@ -522,22 +522,22 @@ def _get_attention_cell(attention_cell, units=None,
     if isinstance(attention_cell, str):
         if attention_cell == 'scaled_luong':
             return DotProductAttentionCell(units=units, scaled=True, normalized=False,
-                                           use_bias=use_bias, dropout=dropout, luong_style=True)
+                                           use_bias=use_bias, dropout=dropout, luong_style=True, **kwargs)
         elif attention_cell == 'scaled_dot':
             return DotProductAttentionCell(units=units, scaled=True, normalized=False,
-                                           use_bias=use_bias, dropout=dropout, luong_style=False)
+                                           use_bias=use_bias, dropout=dropout, luong_style=False, **kwargs)
         elif attention_cell == 'dot':
             return DotProductAttentionCell(units=units, scaled=False, normalized=False,
-                                           use_bias=use_bias, dropout=dropout, luong_style=False)
+                                           use_bias=use_bias, dropout=dropout, luong_style=False, **kwargs)
         elif attention_cell == 'cosine':
             return DotProductAttentionCell(units=units, scaled=False, use_bias=use_bias,
-                                           dropout=dropout, normalized=True)
+                                           dropout=dropout, normalized=True, **kwargs)
         elif attention_cell == 'mlp':
-            return MLPAttentionCell(units=units, normalized=False)
+            return MLPAttentionCell(units=units, normalized=False, **kwargs)
         elif attention_cell == 'normed_mlp':
-            return MLPAttentionCell(units=units, normalized=True)
+            return MLPAttentionCell(units=units, normalized=True, **kwargs)
         elif attention_cell == 'multi_head':
-            base_cell = DotProductAttentionCell(scaled=scaled, dropout=dropout)
+            base_cell = DotProductAttentionCell(scaled=scaled, dropout=dropout, **kwargs)
             return MultiHeadAttentionCell(base_cell=base_cell, query_units=units, use_bias=use_bias,
                                           key_units=units, value_units=units, num_heads=num_heads)
         else:

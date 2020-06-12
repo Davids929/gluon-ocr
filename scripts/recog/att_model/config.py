@@ -11,8 +11,8 @@ def parse_args():
     parser.add_argument('--batch-size', type=int, default=128,
                         help='Training mini-batch size')
     parser.add_argument('--voc-path', type=str, default='',
-                        help='the path of vocabulary.')
-    parser.add_argument('--max-len', type=int, default=48,
+                        help='The path of vocabulary.')
+    parser.add_argument('--max-len', type=int, default=60,
                         help='The max length of text')
     parser.add_argument('--fix-width', type=int, default=384,
                         help='The width of image in training.')
@@ -70,7 +70,7 @@ def parse_args():
                         help='export model')
 
     args = parser.parse_args()
-    args.save_prefix = args.save_prefix + '_'.join(('crnn', args.network+str(args.num_layers)))
+    args.save_prefix = args.save_prefix + '_'.join(('att-model', args.network+str(args.num_layers)))
     args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
     args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',
                             '/home/idcard/data/receipts/baidu_lines.txt',

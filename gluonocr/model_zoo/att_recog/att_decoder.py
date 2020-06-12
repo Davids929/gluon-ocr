@@ -6,7 +6,7 @@ from ...nn.attention_cell import _get_attention_cell
 
 
 class AttDecoder(nn.HybridBlock):
-    def __init__(self, embed_dim=512, match_dim=512, hidden_dim=256, 
+    def __init__(self, embed_dim=512, match_dim=512, hidden_dim=512, 
                  voc_size=37, num_layers=2, dropout=0.1, bilstm=False,
                  attention_cell='scaled_dot', **kwargs):
 
@@ -22,8 +22,8 @@ class AttDecoder(nn.HybridBlock):
             self.dropout = nn.Dropout(dropout)
             self.fc      = nn.Dense(voc_size, flatten=False)
 
-    def hybrid_forward(self, F, cur_input, states):
-        en_out, en_proj, en_mask, h, c = states
+    def hybrid_forward(self, F, cur_input, en_out, en_proj, en_mask, h, c):
+
         state = [h, c]
         pre_output_list = F.SliceChannel(h, num_outputs=self.num_layers,
                                          axis=0, squeeze_axis=False)
@@ -34,13 +34,13 @@ class AttDecoder(nn.HybridBlock):
         att_out, att_weight = self.attention(att_input, en_proj, en_out, en_mask)
         lstm_in = F.concat(cur_input, att_out, dim=2)
         lstm_out, state = self.lstm(lstm_in, state)
-        output = F.concat(lstm_in, lstm_out, dim=2)
-        output = self.dropout(output)
+        #output = F.concat(lstm_in, lstm_out, dim=2)
+        output = self.dropout(lstm_out)
         output = self.fc(output)
-        states = [en_out, en_proj, en_mask, state[0], state[1]]
-        return output, states
+        #states = [en_out, en_proj, en_mask, state[0], state[1]]
+        return output, en_out, en_proj, en_mask, state[0], state[1]
 
-    def begin_state(self, batch_size, seq_len, ctx):
+    def begin_state(self, batch_size, ctx):
         h_state = nd.zeros(shape=(self.num_layers, batch_size, self.hidden_dim), dtype='float32', ctx=ctx)
         c_state = nd.zeros(shape=(self.num_layers, batch_size, self.hidden_dim), dtype='float32', ctx=ctx)
         # pre_att = nd.zeros(shape=(batch_size, seq_len, 1), dtype='float32', ctx=ctx)

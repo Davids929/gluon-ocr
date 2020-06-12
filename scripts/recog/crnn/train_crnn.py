@@ -143,16 +143,12 @@ class Trainer(object):
                         out = self.net(sd, fm)
                         with mx.autograd.pause():
                             bs, seq_len = out.shape[:2]
-                            tag_len = tl.shape[1]
-                        if tag_len > seq_len:
-                            tl = tl[:, :seq_len]
                         lab_length  = mx.nd.sum(tm, axis=-1)
                         pred_length = seq_len*mx.nd.ones((bs), dtype='float32').as_in_context(sd.context)
                         loss = self.loss(out, tl, pred_length, lab_length)
                         l_list.append(loss)
                     mx.autograd.backward(l_list)
                 trainer.step(args.batch_size)
-                #mx.nd.waitall()
                 self.acc_metric.update(out, tl, tm)
                 self.loss_metric.update(0, l_list)
                 if args.log_interval and not (i + 1) % args.log_interval:

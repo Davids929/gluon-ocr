@@ -7,6 +7,7 @@ import numpy as np
 import mxnet as mx
 from mxnet.gluon.data import Dataset
 from . import normalize_fn
+
 class FixSizeDataset(Dataset):
     def __init__(self, line_path, voc_path, augment_fn=None, short_side=32, 
                  fix_width=256, max_len=60, start_sym=None, end_sym=None):
@@ -138,7 +139,7 @@ class FixSizeDataset(Dataset):
         return img_data, img_mask, targ_data, lab, lab_mask, idx
 
 class BucketDataset(FixSizeDataset):
-    def __init_(self, line_path, voc_path, augment_fn=None, short_side=32, 
+    def __init__(self, line_path, voc_path, augment_fn=None, short_side=32, 
                 fix_width=None, max_len=60, start_sym=None, end_sym=None, 
                 split_width_len=128, split_text_len=10):
     

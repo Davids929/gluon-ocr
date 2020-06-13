@@ -30,14 +30,13 @@ class AttDecoder(nn.HybridBlock):
         pre_output = pre_output_list[self.num_layers-1]
         pre_output = F.transpose(pre_output, axes=(1, 0, 2))
         cur_input  = self.embedding(cur_input)
-        att_input  = F.concat(pre_output, cur_input, dim=2)
+        att_input  = pre_output + cur_input
         att_out, att_weight = self.attention(att_input, en_proj, en_out, en_mask)
         lstm_in = F.concat(cur_input, att_out, dim=2)
         lstm_out, state = self.lstm(lstm_in, state)
-        lstm_out = F.concat(lstm_in, lstm_out, dim=2)
+        #lstm_out = F.concat(lstm_in, lstm_out, dim=2)
         output = self.dropout(lstm_out)
         output = self.fc(output)
-        #states = [en_out, en_proj, en_mask, state[0], state[1]]
         return output, en_out, en_proj, en_mask, state[0], state[1]
 
     def begin_state(self, batch_size, ctx):

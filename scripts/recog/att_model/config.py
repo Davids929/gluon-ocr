@@ -6,9 +6,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train SSD networks.')
     parser.add_argument('--network', type=str, default='resnet',
                         help="Base network name which serves as feature extraction base.")
-    parser.add_argument('--num-layers', type=int, default=34,
+    parser.add_argument('--num-layers', type=int, default=50,
                         help="The number layers of base network.")
-    parser.add_argument('--batch-size', type=int, default=128,
+    parser.add_argument('--batch-size', type=int, default=64,
                         help='Training mini-batch size')
     parser.add_argument('--voc-path', type=str, default='',
                         help='The path of vocabulary.')
@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument('--num-workers', '-j', dest='num_workers', type=int,
                         default=16, help='Number of data workers, you can use larger '
                         'number to accelerate data loading, if you CPU and GPUs are powerful.')
-    parser.add_argument('--gpus', type=str, default='1',
+    parser.add_argument('--gpus', type=str, default='2',
                         help='Training with GPUs, you can specify 1,3 for example.')
     parser.add_argument('--epochs', type=int, default=100,
                         help='Training epochs.')
@@ -72,6 +72,7 @@ def parse_args():
     args = parser.parse_args()
     args.save_prefix = args.save_prefix + '_'.join(('att-model', args.network+str(args.num_layers)))
     args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
+    #args.train_data_path = ['/home/idcard/data/receipts/val_lines.txt']
     args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',
                             '/home/idcard/data/receipts/baidu_lines.txt',
                             '/home/idcard/data/receipts/concat_lines.txt',

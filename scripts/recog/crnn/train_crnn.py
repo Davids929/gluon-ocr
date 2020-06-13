@@ -132,14 +132,14 @@ class Trainer(object):
             self.net.hybridize()
             for i, batch in enumerate(self.train_dataloader):
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
-                fea_mask = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
+                fea_mask = mx.nd.reshape(batch[1][:, :, ::32, ::4], (0, 0, -1))
+                fea_mask = gluon.utils.split_and_load(fea_mask, ctx_list=self.ctx)
                 tag_lab  = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 tag_mask = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
                 l_list = []
                
                 with mx.autograd.record():
                     for sd, fm, tl, tm in zip(src_data, fea_mask, tag_lab, tag_mask):
-                        fm  = mx.nd.reshape(fm[:, :, ::32, ::4], (0, 0, -1))
                         out = self.net(sd, fm)
                         with mx.autograd.pause():
                             bs, seq_len = out.shape[:2]

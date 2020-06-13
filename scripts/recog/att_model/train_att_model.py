@@ -140,8 +140,9 @@ class Trainer(object):
             btic = time.time()
             self.net.hybridize()
             for i, batch in enumerate(self.train_dataloader):
+                mask = mx.nd.reshape(batch[1][:,:, ::32, ::8], (0, 0, -1))
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
-                src_mask = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
+                src_mask = gluon.utils.split_and_load(mask, ctx_list=self.ctx)
                 src_targ = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 tag_lab  = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
                 tag_mask = gluon.utils.split_and_load(batch[4], ctx_list=self.ctx)
@@ -151,7 +152,6 @@ class Trainer(object):
                         with mx.autograd.pause():
                             bs = tl.shape[0]
                         states = self.net.begin_state(bs, sd.context)
-                        sm = mx.nd.reshape(sm[:,:, ::32, ::8], (0, 0, -1))
                         outputs = self.net(sd, sm, st, *states)
                         loss = self.loss(outputs, tl, tm.expand_dims(axis=2))
                         l_list.append(loss)
@@ -194,11 +194,10 @@ class Trainer(object):
             s_mask = mx.nd.reshape(s_mask[:, :, ::32, ::8], (0, 0, -1))
             t_label = data[3]
             t_mask = data[4]
-            bs, seq_len = data[2].shape
-            out_len = seq_len//2 if seq>16 else 8
-            targ_inp = self.net.begin_inp(bs, out_len, self.ctx[0])
+            bs, seq_len = t_label.shape
+            targ_inp = self.net.begin_inp(bs, seq_len, self.ctx[0])
             states = self.net.begin_state(bs, self.ctx[0])
-            out    = self.net(s_data, s_mask, tag_inp, *states)
+            out    = self.net(s_data, s_mask, targ_inp, *states)
             self.acc_metric.update(out, t_label, t_mask)
         name, acc = self.acc_metric.get()
         self.acc_metric.reset()

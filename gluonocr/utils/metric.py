@@ -33,7 +33,8 @@ class RecogAccuracy(EvalMetric):
     def update(self, preds, labels, mask):
         labels = labels.asnumpy().astype('int32')
         preds = preds.asnumpy()
-        preds = np.argmax(preds, axis=-1).astype('int32')
+        if len(preds.shape) != len(labels.shape):
+            preds = np.argmax(preds, axis=-1).astype('int32')
         mask  = mask.asnumpy()
         seq_len = labels.shape[-1]
         if self.ctc_mode:

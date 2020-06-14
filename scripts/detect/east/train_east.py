@@ -68,7 +68,7 @@ class Trainer(object):
 
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, 
                                       last_batch='discard', shuffle=True, 
-                                      num_workers=args.num_workers, pin_memory=True)
+                                      num_workers=args.num_workers, pin_memory=False)
         val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, 
                                     num_workers=args.num_workers, last_batch='keep')
         return train_dataloader, val_dataloader

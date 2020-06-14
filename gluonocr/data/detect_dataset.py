@@ -107,6 +107,7 @@ class DBDataset(Dataset):
         else:
             raise ValueError('Layout type is not support.')
         return new_img
+
     def _load_ann(self, lab_path):
         with open(lab_path, 'r', encoding='utf-8') as fi:
             lines = fi.readlines()
@@ -136,6 +137,7 @@ class EASTDataset(DBDataset):
                                           shrink_ratio=shrink_ratio, debug=debug)
        
         self.get_label.gen_geometry = True
+
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self.imgs_list[idx])
         lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
@@ -150,7 +152,6 @@ class EASTDataset(DBDataset):
         img_np, polygons = self.image_resize(img_np, polygons, self.img_size)
         data = {'image':img_np, 'polygons':polygons, 'ignore_tags':ignore_tags}
         data = self.get_label(data)
-       
         if self.debug:
             aa = data['gt']*255
             cv2.imwrite('gt.jpg',aa.astype('uint8'))
@@ -160,6 +161,7 @@ class EASTDataset(DBDataset):
             for poly in polygons:
                 cv2.polylines(image, [poly.astype('int32')], True, (0, 255, 0), 2)
             cv2.imwrite('image.jpg', image)
+
         image = self.padd_image(data['image'], self.img_size, layout='HWC')
         image = mx.nd.array(image, dtype='float32')
         image = normalize_fn(image)

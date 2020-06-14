@@ -69,10 +69,8 @@ class Trainer(object):
         augment = Augmenter()
         if args.bucket_mode:
             dataset_fn = BucketDataset
-            batch_size = None
         else:
             dataset_fn = FixSizeDataset
-            batch_size = args.batch_size
 
         train_dataset = dataset_fn(args.train_data_path, args.voc_path, 
                                    short_side=args.short_side,
@@ -90,13 +88,15 @@ class Trainer(object):
             args.num_samples = len(train_dataset)
 
         if args.bucket_mode:
-            train_sampler = BucketSampler(batch_size, train_dataset.bucket_dict,
+            train_sampler = BucketSampler(args.batch_size, train_dataset.bucket_dict,
                                         shuffle=True, last_batch='discard')
             val_sampler = BucketSampler(1, val_dataset.bucket_dict,
                                         shuffle=False, last_batch='keep')
+            batch_size  = None
         else:
             train_sampler, val_sampler = None, None
-        
+            batch_size  = args.batch_size
+
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
                                       batch_sampler=train_sampler, pin_memory=True,
                                       num_workers=args.num_workers)
@@ -145,9 +145,10 @@ class Trainer(object):
             tic = time.time()
             btic = time.time()
             self.net.hybridize()
+
             for i, batch in enumerate(self.train_dataloader):
-                mask = mx.nd.reshape(batch[1][:,:, ::32, ::8], (0, 0, -1))
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
+                mask     = mx.nd.reshape(batch[1][:,:, ::32, ::8], (0, 0, -1))
                 src_mask = gluon.utils.split_and_load(mask, ctx_list=self.ctx)
                 src_targ = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 tag_lab  = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)

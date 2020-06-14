@@ -28,20 +28,23 @@ class Trainer(object):
         voc_size = self.train_dataloader._dataset.voc_size
         start = self.train_dataloader._dataset.start_sym
         end   = self.train_dataloader._dataset.end_sym
+        decoder_kwargs = {'voc_size':voc_size}
         if args.syncbn and len(self.ctx) > 1:
             self.net = get_att_model(args.network, args.num_layers, 
-                                    voc_size=voc_size, pretrained_base=True, 
+                                    pretrained_base=True, 
                                     norm_layer=gluon.contrib.nn.SyncBatchNorm,
                                     norm_kwargs={'num_devices': len(self.ctx)},
-                                    start_symbol=start, end_symbol=end)
+                                    start_symbol=start, end_symbol=end,
+                                    decoder_kwargs=decoder_kwargs)
         
             self.async_net = get_att_model(args.network, args.num_layers, 
-                                    voc_size=voc_size, start_symbol=start, 
-                                    end_symbol=end)  # used by cpu worker
+                                    start_symbol=start, end_symbol=end, 
+                                    decoder_kwargs=decoder_kwargs)  # used by cpu worker
         else:
             self.net = get_att_model(args.network, args.num_layers, 
-                                    pretrained_base=True, voc_size=voc_size, 
-                                    start_symbol=start, end_symbol=end)
+                                    pretrained_base=True, 
+                                    start_symbol=start, end_symbol=end,
+                                    decoder_kwargs=decoder_kwargs)
             self.async_net = self.net
         self.net.hybridize()
         if args.export_model:
@@ -66,9 +69,11 @@ class Trainer(object):
         augment = Augmenter()
         if args.bucket_mode:
             dataset_fn = BucketDataset
+            batch_size = None
         else:
             dataset_fn = FixSizeDataset
-        
+            batch_size = args.batch_size
+
         train_dataset = dataset_fn(args.train_data_path, args.voc_path, 
                                    short_side=args.short_side,
                                    fix_width=args.fix_width,
@@ -85,15 +90,13 @@ class Trainer(object):
             args.num_samples = len(train_dataset)
 
         if args.bucket_mode:
-            train_sampler = BucketSampler(args.batch_size, train_dataset.bucket_dict,
+            train_sampler = BucketSampler(batch_size, train_dataset.bucket_dict,
                                         shuffle=True, last_batch='discard')
             val_sampler = BucketSampler(1, val_dataset.bucket_dict,
                                         shuffle=False, last_batch='keep')
         else:
             train_sampler, val_sampler = None, None
         
-        
-        batch_size = args.batch_size if not args.bucket_mode else None
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
                                       batch_sampler=train_sampler, pin_memory=True,
                                       num_workers=args.num_workers)

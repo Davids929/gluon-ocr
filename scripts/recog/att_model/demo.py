@@ -73,8 +73,8 @@ class Demo(object):
         img = img.expand_dims(0).as_in_context(self.ctx)
         mask  = mx.nd.ones(shape=(1, w//8), dtype='float32', ctx=self.ctx)
         ## decoder lstm state
-        h_state = mx.nd.zeros(shape=(2, 1, 512), dtype='float32', ctx=self.ctx)
-        c_state = mx.nd.zeros(shape=(2, 1, 512), dtype='float32', ctx=self.ctx)
+        h_state = mx.nd.zeros(shape=(2, 1, 256), dtype='float32', ctx=self.ctx)
+        c_state = mx.nd.zeros(shape=(2, 1, 256), dtype='float32', ctx=self.ctx)
         ## output shape
         out_len = w//16 if w//16>8 else 8
         targ_input = mx.nd.ones((1, out_len), dtype='float32', ctx=self.ctx)

@@ -11,7 +11,6 @@ class AttModel(nn.HybridBlock):
         super(AttModel, self).__init__(**kwargs)
         self.start_symbol = start_symbol
         self.end_symbol   = end_symbol
-        self.max_text_len = 60
         with self.name_scope():
             self.encoder = encoder
             self.decoder = decoder
@@ -55,9 +54,10 @@ class AttModel(nn.HybridBlock):
         return inp
 
 def get_att_model(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
-                  norm_layer=nn.BatchNorm, norm_kwargs=None, start_symbol=0, end_symbol=1, **kwargs):
+                  norm_layer=nn.BatchNorm, norm_kwargs=None, start_symbol=0, end_symbol=1, 
+                  encoder_kwargs={}, decoder_kwargs={}):
     encoder = get_encoder(backbone_name, num_layers, pretrained_base=pretrained_base, ctx=ctx,
-                          norm_layer=norm_layer, norm_kwargs=norm_kwargs)
-    decoder = AttDecoder(**kwargs)
+                          norm_layer=norm_layer, norm_kwargs=norm_kwargs, **encoder_kwargs)
+    decoder = AttDecoder(**decoder_kwargs)
     net = AttModel(encoder, decoder, start_symbol=start_symbol, end_symbol=end_symbol)
     return net

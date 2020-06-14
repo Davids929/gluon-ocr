@@ -5,7 +5,7 @@ from mxnet.gluon import nn
 
 class AttEncoder(nn.HybridBlock):
     def __init__(self, stages, hidden_dim=256, num_layers=2,
-                 match_dim=512, dropout=0.1, rnn_type='lstm',
+                 match_dim=256, dropout=0.1, rnn_type='lstm',
                  **kwargs):
 
         super(AttEncoder, self).__init__(**kwargs)

@@ -6,15 +6,16 @@ from ...nn.attention_cell import _get_attention_cell
 
 
 class AttDecoder(nn.HybridBlock):
-    def __init__(self, embed_dim=512, match_dim=512, hidden_dim=512, 
+    def __init__(self, embed_dim=256, match_dim=256, hidden_dim=256, 
                  voc_size=37, num_layers=2, dropout=0.1, bilstm=False,
-                 attention_cell='scaled_dot', **kwargs):
+                 attention_cell='scaled_luong', **kwargs):
 
         super(AttDecoder, self).__init__(**kwargs)
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         with self.name_scope():
-            self.attention = _get_attention_cell(attention_cell, units=match_dim, dropout=dropout)
+            self.attention = _get_attention_cell(attention_cell, units=match_dim, 
+                                                dropout=dropout)
             self.embedding = nn.Embedding(voc_size, embed_dim)
             self.lstm      = gluon.rnn.LSTM(hidden_dim, num_layers, dropout=dropout,
                                             bidirectional=bilstm, layout='NTC')

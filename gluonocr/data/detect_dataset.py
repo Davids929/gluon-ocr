@@ -58,10 +58,12 @@ class DBDataset(Dataset):
         data = self.get_border(data)
         
         if self.debug:
-            aa =  data['gt']*255
-            cv2.imwrite('gt.jpg',aa.astype('uint8'))
-            bb = data['thresh_map']*255 * data['thresh_mask']
-            cv2.imwrite('thresh.jpg', bb.astype('uint8'))
+            gt =  data['gt']*255
+            cv2.imwrite('gt.jpg',gt.astype('uint8'))
+            thresh_map = data['thresh_map']*255 ## * data['thresh_mask']
+            cv2.imwrite('thresh.jpg', thresh_map.astype('uint8'))
+            thresh_mask = data['thresh_mask']*255
+            cv2.imwrite('thresh_mask.jpg', thresh_mask.astype('uint8'))
             image = data['image'].astype('uint8')
             for poly in polygons:
                 cv2.polylines(image, [poly.astype('int32')], True, (0, 255, 0), 2)
@@ -71,7 +73,8 @@ class DBDataset(Dataset):
         image = normalize_fn(image)
         gt    = self.padd_image(data['gt'], self.img_size, layout='HW')
         gt    = mx.nd.array(gt, dtype='float32').expand_dims(axis=0)
-        mask  = mx.nd.array(data['mask'], dtype='float32').expand_dims(axis=0)
+        mask  = self.padd_image(data['mask'], self.img_size, layout='HW')
+        mask  = mx.nd.array(mask, dtype='float32').expand_dims(axis=0)
         thresh_map = self.padd_image(data['thresh_map'], self.img_size, layout='HW')
         thresh_map = mx.nd.array(thresh_map, dtype='float32').expand_dims(axis=0)
         thresh_mask= self.padd_image(data['thresh_mask'], self.img_size, layout='HW')
@@ -131,7 +134,7 @@ class DBDataset(Dataset):
 
 class EASTDataset(DBDataset):
     def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
-                 min_text_size=8, shrink_ratio=0.4, debug=False):
+                 min_text_size=8, shrink_ratio=0.3, debug=False):
         super(EASTDataset, self).__init__(img_dir, lab_dir, augment_fns=augment_fns, 
                                           img_size=img_size,min_text_size=min_text_size, 
                                           shrink_ratio=shrink_ratio, debug=debug)
@@ -153,10 +156,10 @@ class EASTDataset(DBDataset):
         data = {'image':img_np, 'polygons':polygons, 'ignore_tags':ignore_tags}
         data = self.get_label(data)
         if self.debug:
-            aa = data['gt']*255
-            cv2.imwrite('gt.jpg',aa.astype('uint8'))
-            bb = data['mask']*255
-            cv2.imwrite('thresh.jpg', bb.astype('uint8'))
+            score = data['gt']*255
+            cv2.imwrite('gt.jpg',score.astype('uint8'))
+            mask = data['mask']*255
+            cv2.imwrite('thresh.jpg', mask.astype('uint8'))
             image = data['image'].astype('uint8')
             for poly in polygons:
                 cv2.polylines(image, [poly.astype('int32')], True, (0, 255, 0), 2)

@@ -37,8 +37,8 @@ class MaskAugmenter(object):
         
         posi_seq  = iaa.SomeOf(2, [iaa.Affine(rotate=(-10, 10)),
                                    iaa.Fliplr(0.5),
-                                   iaa.Crop(percent=([0.05, 0.1], [0.05, 0.1], 
-                                                     [0.05, 0.1], [0.05, 0.1])),
+                                   iaa.Crop(percent=([0.05, 0.2], [0.05, 0.2], 
+                                                     [0.05, 0.2], [0.05, 0.2])),
                                    iaa.Resize((0.5, 3.0)),
                                     ])
 

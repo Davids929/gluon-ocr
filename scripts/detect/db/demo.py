@@ -15,7 +15,7 @@ parser.add_argument('--model-path', type=str, help='model file path.')
 parser.add_argument('--params-path', type=str, help='params file path.')
 parser.add_argument('--image-path', type=str, help='image path')
 parser.add_argument('--result-dir', type=str, default='./demo_results/', help='path to save results')
-parser.add_argument('--image-short-side', type=int, default=768,
+parser.add_argument('--image-short-side', type=int, default=736,
                     help='The threshold to replace it in the representers')
 parser.add_argument('--thresh', type=float, default=0.3,
                     help='The threshold to replace it in the representers')

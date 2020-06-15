@@ -3,6 +3,7 @@ import cv2
 import os
 import sys
 import logging
+import warnings
 import time
 import mxnet as mx
 from mxnet import gluon
@@ -16,7 +17,7 @@ from gluonocr.data import PointAugmenter
 from gluonocr.loss import DBLoss
 from config import args
 
-gcv.utils.random.seed(args.seed)
+gutils.random.seed(args.seed)
 
 class Trainer(object):
     def __init__(self):
@@ -36,28 +37,28 @@ class Trainer(object):
         if not os.path.exists(args.save_prefix):
             os.mkdir(args.save_prefix)
         args.save_prefix += model_name
-        
-        if args.resume.strip():
-            self.net.load_parameters(args.resume.strip())
-            print('load model %s'%args.resume.strip())
-        else:
-            self.net.initialize(init=mx.init.Xavier())
+        self.init_model()
         self.net.hybridize()
         self.net.collect_params().reset_ctx(self.ctx)
         if args.export_model:
             self.export_model()
         
-        lr_scheduler = self.get_lr_scheduler()
-        self.trainer = gluon.Trainer(
-                self.net.collect_params(), 'sgd',
-                {'lr_scheduler': lr_scheduler, 'wd': args.wd, 'momentum': args.momentum})
-
         self.train_dataloader, self.val_dataloader = self.get_dataloader()
         self.loss = DBLoss()
         self.sum_loss  = mx.metric.Loss('SumLoss')
         self.bce_loss  = mx.metric.Loss('BalanceCELoss')
         self.l1_loss   = mx.metric.Loss('L1Loss')
         self.dice_loss = mx.metric.Loss('DiceLoss')
+
+    def init_model(self):
+        if args.resume.strip():
+            self.net.load_parameters(args.resume.strip())
+            self.async_net.load_parameters(args.resume.strip())
+        else:
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
+                self.net.initialize(init=mx.init.Xavier())
+                self.async_net.initialize(init=mx.init.Xavier())
 
     def get_lr_scheduler(self):
         if args.lr_decay_period > 0:
@@ -66,7 +67,7 @@ class Trainer(object):
             lr_decay_epoch = [int(i) for i in args.lr_decay_epoch.split(',')]
         lr_decay_epoch = [e - args.warmup_epochs for e in lr_decay_epoch]
         num_batches = args.num_samples // args.batch_size
-        lr_scheduler = LRSequential([
+        lr_scheduler = gutils.LRSequential([
             gutils.LRScheduler('linear', base_lr=0, target_lr=args.lr,
                         nepochs=args.warmup_epochs, iters_per_epoch=num_batches),
             gutils.LRScheduler(args.lr_mode, base_lr=args.lr,
@@ -78,7 +79,7 @@ class Trainer(object):
         return lr_scheduler
     
     def get_dataloader(self):
-       augment = PointAugmenter()
+        augment = PointAugmenter()
         train_dataset = DBDataset(args.train_img_dir, 
                                   args.train_lab_dir,
                                   augment,
@@ -96,7 +97,24 @@ class Trainer(object):
         return train_dataloader, val_dataloader
 
     def train(self):
+        if args.lr_decay_period > 0:
+            lr_decay_epoch = list(range(args.lr_decay_period, args.epochs, args.lr_decay_period))
+        else:
+            lr_decay_epoch = [int(i) for i in args.lr_decay_epoch.split(',')]
+        lr_decay_epoch = [e - args.warmup_epochs for e in lr_decay_epoch]
+        num_batches = args.num_samples // args.batch_size
+        lr_scheduler = gutils.LRSequential([
+            gutils.LRScheduler('linear', base_lr=0, target_lr=args.lr,
+                        nepochs=args.warmup_epochs, iters_per_epoch=num_batches),
+            gutils.LRScheduler(args.lr_mode, base_lr=args.lr,
+                        nepochs=args.epochs - args.warmup_epochs,
+                        iters_per_epoch=num_batches,
+                        step_epoch=lr_decay_epoch,
+                        step_factor=args.lr_decay, power=2),
+            ])
 
+        trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
+            {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler}) #
          # set up logger
         logging.basicConfig()
         logger = logging.getLogger()
@@ -132,7 +150,7 @@ class Trainer(object):
                         l1_losses.append(metric['l1_loss'])
                         dice_losses.append(metric['thresh_loss'])
                     mx.autograd.backward(sum_losses)
-                self.trainer.step(1)
+                trainer.step(1)
                 self.sum_loss.update(0, sum_losses)
                 self.bce_loss.update(0, bce_losses)
                 self.l1_loss.update(0, l1_losses)
@@ -143,7 +161,7 @@ class Trainer(object):
                     name2, loss2 = self.l1_loss.get()
                     name3, loss3 = self.dice_loss.get()
                     logger.info('[Epoch {}][Batch {}], LR: {:.2E}, Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}, {}={:.3f}, {}={:.3f}'.format(
-                        epoch, i+1, self.trainer.learning_rate, args.batch_size/(time.time()-btic), name0, loss0, name1, loss1, name2, loss2, name3, loss3))
+                        epoch, i+1, trainer.learning_rate, args.batch_size/(time.time()-btic), name0, loss0, name1, loss1, name2, loss2, name3, loss3))
                 btic = time.time()
             
             name0, loss0 = self.sum_loss.get()

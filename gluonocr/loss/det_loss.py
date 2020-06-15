@@ -9,11 +9,9 @@ class DiceLoss(Loss):
         super(DiceLoss, self).__init__(weight, batch_axis, **kwargs)
         self.eps = eps
 
-    def hybrid_forward(self, F, pred, label, mask, sample_weight=None):
-        
-        mask  = _apply_weighting(mask, self._weight, sample_weight)
+    def hybrid_forward(self, F, pred, label, mask):
         inter = F.sum(pred*label*mask, axis=self._batch_axis, exclude=True)
-        union = F.sum(pred*mask, axis=self._batch_axis, exclude=True)  + \
+        union = F.sum(pred*mask, axis=self._batch_axis, exclude=True) + \
                 F.sum(label*mask, axis=self._batch_axis, exclude=True) + self.eps
         loss  = 1 - 2.0*inter/union
         return loss
@@ -104,7 +102,7 @@ class DBLoss(Loss):
         return loss, metrics
 
 class EASTLoss(Loss):
-    def __init__(self, alpha=0.01, rho=1.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
+    def __init__(self, alpha=0.1, rho=1.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
         super(EASTLoss, self).__init__(weight, batch_axis, **kwargs)
         self._alpha = alpha
         self._rho   = rho
@@ -121,11 +119,13 @@ class EASTLoss(Loss):
         norm_weight = mx.nd.repeat(norm_weight, repeats=8, axis=1)
         lab_geo   = lab_geo.slice_axis(axis=1, begin=0, end=8)
         lab_score = mx.nd.repeat(lab_score, repeats=8, axis=1)
+        
+        mask      = lab_mask * lab_score
         l1_loss   = mx.nd.abs(lab_geo - pred_geo)
-        l1_loss   = mx.nd.where(l1_loss > self._rho, l1_loss - 0.5*self._rho, 
-                               (0.5 / self._rho)*mx.nd.square(l1_loss))
-        l1_loss  = norm_weight * l1_loss * lab_score / 8
-        l1_loss  = mx.nd.mean(mx.nd.sum(l1_loss, axis=1), axis=self._batch_axis, exclude=True)
+        l1_loss   = mx.nd.where(l1_loss > lab_score, l1_loss - 0.5, 
+                                mx.nd.square(l1_loss))
+        l1_loss  = norm_weight * mx.nd.mean(l1_loss, axis=1, keepdims=True) * mask
+        l1_loss  = mx.nd.mean(l1_loss, axis=self._batch_axis, exclude=True)
 
         loss = self._alpha * dice_loss + l1_loss
         metrics = dict(dice_loss=dice_loss, l1_loss=l1_loss)

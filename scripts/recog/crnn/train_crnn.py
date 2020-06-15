@@ -65,11 +65,13 @@ class Trainer(object):
                                    short_side=args.short_side,
                                    fix_width=args.fix_width,
                                    augment_fn=augment,
-                                   max_len=args.max_len)
+                                   max_len=args.max_len, 
+                                   min_divisor=4)
         val_dataset  = dataset_fn(args.val_data_path, args.voc_path, 
                                    short_side=args.short_side,
                                    fix_width=args.fix_width,
-                                   max_len=args.max_len)
+                                   max_len=args.max_len,
+                                   min_divisor=4)
         
         if args.bucket_mode:
             train_sampler = BucketSampler(args.batch_size, train_dataset.bucket_dict,
@@ -81,11 +83,11 @@ class Trainer(object):
         
         if args.num_samples < 0:
             args.num_samples = len(train_dataset)
-
-        train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, 
+        batch_size = None if args.bucket_mode else args.batch_size
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
                                       batch_sampler=train_sampler, pin_memory=True,
                                       num_workers=args.num_workers)
-        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, 
+        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, 
                                     batch_sampler=val_sampler, pin_memory=True,
                                     num_workers=args.num_workers)
         return train_dataloader, val_dataloader

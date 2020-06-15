@@ -11,17 +11,17 @@ def parse_args():
                         help='')
     parser.add_argument('--dataset-name', type=str, default='icdar15',
                         help='The name of training dataset.')
-    parser.add_argument('--train-img-dir', type=str)
-    parser.add_argument('--train-lab-dir', type=str)
-    parser.add_argument('--val-img-dir', type=str, default='')
-    parser.add_argument('--val-lab-dir', type=str, default='')
+    parser.add_argument('--train-img-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_img')
+    parser.add_argument('--train-lab-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_lab')
+    parser.add_argument('--val-img-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_img')
+    parser.add_argument('--val-lab-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_lab')
     parser.add_argument('--data-shape', type=int, default=640,
                         help="Input data shape, use 640.")
     
     parser.add_argument('--batch-size', type=int, default=8,
                         help='Training mini-batch size')
     parser.add_argument('--num-workers', '-j', dest='num_workers', type=int,
-                        default=8, help='Number of data workers, you can use larger '
+                        default=0, help='Number of data workers, you can use larger '
                         'number to accelerate data loading, if you CPU and GPUs are powerful.')
     parser.add_argument('--gpus', type=str, default='0',
                         help='Training with GPUs, you can specify 1,3 for example.')
@@ -60,18 +60,14 @@ def parse_args():
     parser.add_argument('--val-interval', type=int, default=1,
                         help='Epoch interval for validation, increase the number will reduce the '
                              'training time if validation is slow.')
+    parser.add_argument('--syncbn', action='store_true',
+                        help='Use synchronize BN across devices.')
     parser.add_argument('--export-model', action='store_true',
                     help='export model')
     parser.add_argument('--seed', type=int, default=233,
                         help='Random seed to be fixed.')
-
-
     args = parser.parse_args()
-    args.augment_args = [['Fliplr', 0.5], 
-                         ['Grayscale', [0.0, 1.0]],
-                         ['LinearContrast', [0.8, 1.2]],
-                         ['GaussianBlur', [0.0, 1.0]],
-                         #['AverageBlur', (3, 7)],
-                         {'cls': 'Affine', 'rotate': [-10, 10]}, 
-                         ['Resize', [0.5, 2.0]]]
+
     return args
+
+args = parse_args()

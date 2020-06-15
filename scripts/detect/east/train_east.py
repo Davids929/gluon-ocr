@@ -90,8 +90,8 @@ class Trainer(object):
                         step_factor=args.lr_decay, power=2),
             ])
 
-        trainer = gluon.Trainer(self.net.collect_params(), 'adam',
-            {'wd': args.wd, 'lr_scheduler': lr_scheduler}) #'momentum': args.momentum,
+        trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
+            {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler}) #
 
         # set up logger
         logging.basicConfig()
@@ -128,7 +128,7 @@ class Trainer(object):
                         dice_losses.append(metric['dice_loss'])
                         l1_losses.append(metric['l1_loss'])
                     mx.autograd.backward(sum_losses)
-                trainer.step(1)
+                trainer.step(args.batch_size//len(self.ctx))
                 #mx.nd.waitall()
                 self.sum_loss.update(0, sum_losses)
                 self.l1_loss.update(0, l1_losses)

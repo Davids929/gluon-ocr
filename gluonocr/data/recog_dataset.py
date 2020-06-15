@@ -9,12 +9,13 @@ from mxnet.gluon.data import Dataset
 from . import normalize_fn
 
 class FixSizeDataset(Dataset):
-    def __init__(self, line_path, voc_path, augment_fn=None, short_side=32, 
+    def __init__(self, line_path, voc_path, augment_fn=None, short_side=32, min_divisor=8,
                  fix_width=256, max_len=60, start_sym=None, end_sym=None):
 
         self.short_side  = short_side
         self.fix_width   = fix_width
         self.max_len     = max_len
+        self.min_divisor = min_divisor
         self.add_symbol  = False if start_sym==None or end_sym==None else True
         self.start_sym   = start_sym
         self.end_sym     = end_sym if self.add_symbol else -1
@@ -106,7 +107,7 @@ class FixSizeDataset(Dataset):
             img_np = np.rot90(img_np)
             h, w = w, h
 
-        w = int(math.ceil(w*self.short_side/h/8))*8
+        w = int(math.ceil(w*self.short_side/h/self.min_divisor))*self.min_divisor
         if w> max_width:
             w = max_width
         img_np = cv2.resize(img_np, (w, self.short_side))
@@ -139,11 +140,11 @@ class FixSizeDataset(Dataset):
         return img_data, img_mask, targ_data, lab, lab_mask, idx
 
 class BucketDataset(FixSizeDataset):
-    def __init__(self, line_path, voc_path, augment_fn=None, short_side=32, 
+    def __init__(self, line_path, voc_path, augment_fn=None, short_side=32,
                 fix_width=None, max_len=60, start_sym=None, end_sym=None, 
-                split_width_len=128, split_text_len=10):
+                split_width_len=128, split_text_len=10, min_divisor=8):
     
-        super(BucketDataset, self).__init__(line_path, voc_path, augment_fn=augment_fn, 
+        super(BucketDataset, self).__init__(line_path, voc_path, augment_fn=augment_fn, min_divisor=min_divisor,
                                             short_side=short_side, fix_width=None, max_len=max_len,
                                             start_sym=start_sym, end_sym=end_sym)
         

@@ -8,7 +8,7 @@ from ...nn.attention_cell import _get_attention_cell
 class AttDecoder(nn.HybridBlock):
     def __init__(self, embed_dim=256, match_dim=256, hidden_dim=256, 
                  voc_size=37, num_layers=2, dropout=0.1, bilstm=False,
-                 attention_cell='scaled_luong', **kwargs):
+                 attention_cell='mlp_luong', **kwargs):
 
         super(AttDecoder, self).__init__(**kwargs)
         self.hidden_dim = hidden_dim

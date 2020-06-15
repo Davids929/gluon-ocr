@@ -50,7 +50,6 @@ class AttModel(nn.HybridBlock):
 
     def begin_inp(self, batch_size, out_len, ctx):
         inp = mx.nd.ones(shape=(batch_size, out_len), dtype='float32', ctx=ctx)
-        inp[:, 0] = self.start_symbol
         return inp
 
 def get_att_model(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),

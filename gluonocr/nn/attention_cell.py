@@ -325,7 +325,7 @@ class MLPAttentionCell(AttentionCell):
         See document of `Block`.
     """
 
-    def __init__(self, units, act=nn.Activation('tanh'), normalized=False, dropout=0.0,
+    def __init__(self, units, act=nn.Activation('tanh'), normalized=False, dropout=0.0, luong_style=False, 
                  weight_initializer=None, bias_initializer='zeros', prefix=None, params=None):
         # Define a temporary class to implement the normalized version
         # TODO(sxjscience) Find a better solution
@@ -350,6 +350,7 @@ class MLPAttentionCell(AttentionCell):
         self._units = units
         self._act = act
         self._normalized = normalized
+        self._luong_style = luong_style
         self._dropout = dropout
         with self.name_scope():
             self._dropout_layer = nn.Dropout(dropout)
@@ -357,9 +358,10 @@ class MLPAttentionCell(AttentionCell):
                                              weight_initializer=weight_initializer,
                                              bias_initializer=bias_initializer,
                                              prefix='query_')
-            self._key_mid_layer = nn.Dense(units=self._units, flatten=False, use_bias=False,
-                                           weight_initializer=weight_initializer,
-                                           prefix='key_')
+            if not self._luong_style:
+                self._key_mid_layer = nn.Dense(units=self._units, flatten=False, use_bias=False,
+                                            weight_initializer=weight_initializer,
+                                            prefix='key_')
             if self._normalized:
                 self._attention_score = \
                     _NormalizedScoreProj(in_units=units,
@@ -373,9 +375,10 @@ class MLPAttentionCell(AttentionCell):
 
     def _compute_score(self, F, query, key, mask=None):
         mapped_query = self._query_mid_layer(query)
-        mapped_key = self._key_mid_layer(key)
+        if not self._luong_style:
+            key = self._key_mid_layer(key)
         mid_feat = F.broadcast_add(F.expand_dims(mapped_query, axis=2),
-                                   F.expand_dims(mapped_key, axis=1))
+                                   F.expand_dims(key, axis=1))
         mid_feat = self._act(mid_feat)
         att_score = self._attention_score(mid_feat).reshape(shape=(0, 0, 0))
         if mask is not None:
@@ -534,6 +537,8 @@ def _get_attention_cell(attention_cell, units=None,
                                            dropout=dropout, normalized=True, **kwargs)
         elif attention_cell == 'mlp':
             return MLPAttentionCell(units=units, normalized=False, **kwargs)
+        elif attention_cell == 'mlp_luong':
+            return MLPAttentionCell(units=units, normalized=False, luong_style=True, **kwargs)
         elif attention_cell == 'normed_mlp':
             return MLPAttentionCell(units=units, normalized=True, **kwargs)
         elif attention_cell == 'multi_head':

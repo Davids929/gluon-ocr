@@ -14,7 +14,7 @@ sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
 from gluonocr.model_zoo import get_crnn
 from gluonocr.data import FixSizeDataset, BucketDataset 
 from gluonocr.data import BucketSampler, Augmenter
-from gluonocr.utils.metric import RecogAccuracy
+from gluonocr.utils.recog_metric import RecogAccuracy
 from config import args
 
 gutils.random.seed(args.seed)

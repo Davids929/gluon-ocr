@@ -4,6 +4,11 @@ import numpy as np
 from shapely.geometry import Polygon
 import pyclipper
 
+"""
+reference from :
+https://github.com/MhLiao/DB/blob/master/structure/representers/seg_detector_representer.py
+"""
+
 class DBPostProcess(object):
 
     def __init__(self, thresh=0.3, box_thresh=0.7, min_size=4, 

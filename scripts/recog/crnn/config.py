@@ -12,9 +12,9 @@ def parse_args():
                         help='Training mini-batch size')
     parser.add_argument('--voc-path', type=str, default='',
                         help='the path of vocabulary.')
-    parser.add_argument('--max-len', type=int, default=48,
+    parser.add_argument('--max-len', type=int, default=40,
                         help='The max length of text')
-    parser.add_argument('--fix-width', type=int, default=384,
+    parser.add_argument('--fix-width', type=int, default=320,
                         help='The width of image in training.')
     parser.add_argument('--short-side', type=int, default=32,
                         help='The height of image in training.')  

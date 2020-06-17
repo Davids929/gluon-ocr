@@ -100,8 +100,8 @@ class RecogDistanceEvaluator(object):
             gt_nums   += met['gt_num']
             correct_nums += met['correct_num']
         
-        precision = correct_num/pred_sum_num
-        recall    = correct_num/targ_sum_num
+        precision = correct_nums/pred_nums
+        recall    = correct_nums/gt_nums
         hmean = 0 if (precision + recall) == 0 else 2.0 * \
                 precision * recall / (precision + recall)
         res = {'precision':precision,

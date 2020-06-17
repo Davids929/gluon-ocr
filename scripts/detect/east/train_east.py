@@ -41,10 +41,10 @@ class Trainer(object):
             self.export_model()
         self.init_model()
         self.net.collect_params().reset_ctx(self.ctx)
-        self.loss = EASTLoss()
+        self.loss = EASTLoss(alpha=1.0)
         self.sum_loss  = mx.metric.Loss('SumLoss')
         self.l1_loss   = mx.metric.Loss('SmoothL1Loss')
-        self.dice_loss = mx.metric.Loss('DiceLoss')
+        self.bce_loss  = mx.metric.Loss('BalanceCELoss')
 
     def init_model(self):
         if args.resume.strip():
@@ -117,7 +117,7 @@ class Trainer(object):
                 score = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
                 mask  = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 geo_map = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
-                sum_losses, dice_losses, l1_losses = [], [], []
+                sum_losses, bce_losses, l1_losses = [], [], []
                 with mx.autograd.record():
                     for d, s, m, gm in zip(data, score, mask, geo_map):
                         pred_score, pred_geo = self.net(d)
@@ -125,24 +125,24 @@ class Trainer(object):
                         lab  = {'gt':s, 'mask':m, 'geo_map':gm}
                         loss, metric = self.loss(pred, lab)
                         sum_losses.append(loss)
-                        dice_losses.append(metric['dice_loss'])
+                        bce_losses.append(metric['bce_loss'])
                         l1_losses.append(metric['l1_loss'])
                     mx.autograd.backward(sum_losses)
                 trainer.step(args.batch_size//len(self.ctx))
                 #mx.nd.waitall()
                 self.sum_loss.update(0, sum_losses)
                 self.l1_loss.update(0, l1_losses)
-                self.dice_loss.update(0, dice_losses)
+                self.bce_loss.update(0, bce_losses)
                 if args.log_interval and not (i + 1) % args.log_interval:
                     name0, loss0 = self.sum_loss.get()
                     name1, loss1 = self.l1_loss.get()
-                    name2, loss2 = self.dice_loss.get()
+                    name2, loss2 = self.bce_loss.get()
                     logger.info('[Epoch {}][Batch {}], LR: {:.2E}, Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}, {}={:.3f}'.format(
                         epoch, i+1, trainer.learning_rate, args.batch_size/(time.time()-btic), name0, loss0, name1, loss1, name2, loss2))
                 btic = time.time()
             name0, loss0 = self.sum_loss.get()
             name1, loss1 = self.l1_loss.get()
-            name2, loss2 = self.dice_loss.get()
+            name2, loss2 = self.bce_loss.get()
             logger.info('[Epoch {}] Training cost: {:.3f}, {}={:.3f}, {}={:.3f}, {}={:.3f}'.format(
                         epoch, time.time()-tic, name0, loss0, name1, loss1, name2, loss2))
 
@@ -161,7 +161,7 @@ class Trainer(object):
         logger.info('Start validate.')
         self.sum_loss.reset()
         self.l1_loss.reset()
-        self.dice_loss.reset()
+        self.bce_loss.reset()
         tic = time.time()
         for batch in self.val_dataloader:
             data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx, batch_axis=0)
@@ -173,17 +173,17 @@ class Trainer(object):
                 loss, metric = self.loss(pred, lab)
                 self.sum_loss.update(0, loss)
                 self.l1_loss.update(0, metric['l1_loss'])
-                self.dice_loss.update(0, metric['dice_loss'])
+                self.bce_loss.update(0, metric['bce_loss'])
         
         name0, loss0 = self.sum_loss.get()
         name1, loss1 = self.l1_loss.get()
-        name2, loss2 = self.dice_loss.get()
+        name2, loss2 = self.bce_loss.get()
         
         logger.info('Evaling cost: {:.3f}, {}={:.3f}, {}={:.3f}, {}={:.3f}'.format(
                     time.time()-tic, name0, loss0, name1, loss1, name2, loss2))
         self.sum_loss.reset()
         self.l1_loss.reset()
-        self.dice_loss.reset()
+        self.bce_loss.reset()
         return loss0
 
     def export_model(self):

@@ -44,7 +44,7 @@ class Trainer(object):
             self.export_model()
         
         self.train_dataloader, self.val_dataloader = self.get_dataloader()
-        self.loss = DBLoss()
+        self.loss = DBLoss(l1_scale=20, bce_scale=10)
         self.sum_loss  = mx.metric.Loss('SumLoss')
         self.bce_loss  = mx.metric.Loss('BalanceCELoss')
         self.l1_loss   = mx.metric.Loss('L1Loss')

@@ -44,7 +44,7 @@ class Trainer(object):
             self.export_model()
         
         self.train_dataloader, self.val_dataloader = self.get_dataloader()
-        self.loss = DBLoss(l1_scale=20, bce_scale=10)
+        self.loss = DBLoss()
         self.sum_loss  = mx.metric.Loss('SumLoss')
         self.bce_loss  = mx.metric.Loss('BalanceCELoss')
         self.l1_loss   = mx.metric.Loss('L1Loss')
@@ -82,10 +82,10 @@ class Trainer(object):
         augment = PointAugmenter()
         train_dataset = DBDataset(args.train_img_dir, 
                                   args.train_lab_dir,
-                                  augment,
+                                  augment, mode='train',
                                   img_size=(args.data_shape, args.data_shape))
         val_dataset  = DBDataset(args.train_img_dir, 
-                                 args.train_lab_dir,
+                                 args.train_lab_dir, mode='val',
                                  img_size=(args.data_shape, args.data_shape))
 
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, 
@@ -138,7 +138,6 @@ class Trainer(object):
                 data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx, batch_axis=0)
                 labs = [gluon.utils.split_and_load(batch[it], ctx_list=self.ctx, batch_axis=0) for it in range(1, 5)]
                 sum_losses, bce_losses, l1_losses, dice_losses = [], [], [], []
-                
                 with mx.autograd.record():
                     for it, x in enumerate(data):
                         bina, thresh, thresh_bina = self.net(x)

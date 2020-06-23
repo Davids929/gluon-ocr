@@ -6,21 +6,23 @@ import numpy as np
 import mxnet as mx
 from mxnet.gluon.data import Dataset
 from . import normalize_fn
-from .make_seg_data import MakeSegDetectorData, MakeBorderMap
-from .detect_augment import PointAugmenter
+from .make_seg_data import MakeShrinkMap, MakeBorderMap
+from .detect_augment import PointAugmenter, RandomCropData
 
 class DBDataset(Dataset):
     def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
-                 min_text_size=8, shrink_ratio=0.4, debug=False):
+                 min_text_size=8, shrink_ratio=0.4, debug=False, mode='train'):
         self.img_dir = img_dir
         self.lab_dir = lab_dir
         self.debug   = debug
+        self.mode    = mode
         self.img_size    = img_size
         self.augment_fns = augment_fns
         self.imgs_type   = ['jpg', 'jpeg', 'png', 'bmp']
         self.imgs_list, self.labs_list = self._get_items(img_dir, lab_dir)
-        self.get_label  = MakeSegDetectorData(min_text_size=min_text_size, shrink_ratio=shrink_ratio)
-        self.get_border = MakeBorderMap(shrink_ratio=shrink_ratio)
+        self.random_crop = RandomCropData(size=img_size)
+        self.get_label   = MakeShrinkMap(min_text_size=min_text_size, shrink_ratio=shrink_ratio)
+        self.get_border  = MakeBorderMap(shrink_ratio=shrink_ratio)
 
     def _get_items(self, img_dir, lab_dir):
         file_list = os.listdir(img_dir)
@@ -47,27 +49,36 @@ class DBDataset(Dataset):
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)
+        if random.uniform(0, 1) > 0.5:
+            img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+
         polygons, ignore_tags = self._load_ann(lab_path)
         if len(polygons) == 0:
             return self.__getitem__(idx-1)
         if self.augment_fns is not None:
             img_np, polygons = self.augment_fns(img_np, polygons)
-        img_np, polygons = self.image_resize(img_np, polygons, self.img_size)
+        if self.mode != 'train':
+            img_np, polygons = self.image_resize(img_np, polygons, self.img_size)
         data = {'image':img_np, 'polygons':polygons, 'ignore_tags':ignore_tags}
+        if self.mode == 'train':
+            data = self.random_crop(data)
         data = self.get_label(data)
         data = self.get_border(data)
         
         if self.debug:
             gt =  data['gt']*255
             cv2.imwrite('gt.jpg',gt.astype('uint8'))
+            mask = data['mask']*255
+            cv2.imwrite('mask.jpg', mask.astype('uint8'))
             thresh_map = data['thresh_map']*255 ## * data['thresh_mask']
             cv2.imwrite('thresh.jpg', thresh_map.astype('uint8'))
             thresh_mask = data['thresh_mask']*255
             cv2.imwrite('thresh_mask.jpg', thresh_mask.astype('uint8'))
             image = data['image'].astype('uint8')
-            for poly in polygons:
+            for poly in data['polygons']:
                 cv2.polylines(image, [poly.astype('int32')], True, (0, 255, 0), 2)
             cv2.imwrite('image.jpg', image)
+        
         image = self.padd_image(data['image'], self.img_size, layout='HWC')
         image = mx.nd.array(image, dtype='float32')
         image = normalize_fn(image)
@@ -87,8 +98,6 @@ class DBDataset(Dataset):
         new_h = int(h*scale)
         new_w = int(w*scale)
         img   = cv2.resize(img, (new_w, new_h)) 
-        # new_img = np.zeros((img_size[1], img_size[0], img.shape[2]), img.dtype)
-        # new_img[:new_h, :new_w, :] = img
         ploy_list = []
         for poly in polys:
             ploy_list.append(poly*scale)
@@ -147,19 +156,24 @@ class EASTDataset(DBDataset):
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)
+        if random.uniform(0, 1) > 0.5:
+            img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
         polygons, ignore_tags = self._load_ann(lab_path)
         if len(polygons) == 0:
             return self.__getitem__(idx-1)
         if self.augment_fns is not None:
             img_np, polygons = self.augment_fns(img_np, polygons)
-        img_np, polygons = self.image_resize(img_np, polygons, self.img_size)
+        if self.mode != 'train':
+            img_np, polygons = self.image_resize(img_np, polygons, self.img_size)
         data = {'image':img_np, 'polygons':polygons, 'ignore_tags':ignore_tags}
+        if self.mode == 'train':
+            data = self.random_crop(data)
         data = self.get_label(data)
         if self.debug:
             score = data['gt']*255
             cv2.imwrite('gt.jpg',score.astype('uint8'))
             mask = data['mask']*255
-            cv2.imwrite('thresh.jpg', mask.astype('uint8'))
+            cv2.imwrite('mask.jpg', mask.astype('uint8'))
             image = data['image'].astype('uint8')
             for poly in polygons:
                 cv2.polylines(image, [poly.astype('int32')], True, (0, 255, 0), 2)

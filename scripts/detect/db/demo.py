@@ -8,7 +8,7 @@ import mxnet as mx
 from mxnet import gluon
 import sys
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
-from gluonocr.utils.db_postprocess import DBPostPocess
+from gluonocr.utils.db_postprocess import DBPostProcess
 
 parser = argparse.ArgumentParser(description='Text Detection inference.')
 parser.add_argument('--model-path', type=str, help='model file path.')
@@ -41,7 +41,7 @@ class Demo(object):
         
         self.mean = (0.485, 0.456, 0.406)
         self.std  = (0.229, 0.224, 0.225)
-        self.struct = DBPostPocess(thresh=args.thresh, box_thresh=args.box_thresh)
+        self.struct = DBPostProcess(thresh=args.thresh, box_thresh=args.box_thresh)
 
     def resize_image(self, img, max_scale=1024):
         height, width, _ = img.shape
@@ -78,7 +78,11 @@ class Demo(object):
             image_list = [os.path.join(image, i) for i in file_list if i.split('.')[-1].lower() in img_types]
         else:
             image_list = [image]
-        for image_path in image_list:
+        
+        if not os.path.isdir(self.args.result_dir):
+            os.mkdir(self.args.result_dir)
+        
+        for image_path in image_list[:30]:
             img, origin_shape = self.load_image(image_path)
             origh_h, origin_w = origin_shape
             outputs = self.net(img)
@@ -94,12 +98,23 @@ class Demo(object):
             else:
                 boxes, scores = self.struct.boxes_from_bitmap(pred, origin_w, origh_h)
             
-            if not os.path.isdir(self.args.result_dir):
-                os.mkdir(self.args.result_dir)
-        
+            save_name = '.'.join(os.path.basename(image_path).split('.')[:-1]) + '.txt'
+            save_path = os.path.join(self.args.result_dir, save_name)
+            self.save_detect_res(boxes, save_path)
+
             if visualize:
                 vis_image = self.visualize(image_path, pred, boxes)
                 cv2.imwrite(os.path.join(self.args.result_dir, os.path.basename(image_path)), vis_image)
+
+    def save_detect_res(self, boxes, save_path):
+        num = boxes.shape[0]
+        boxes = np.reshape(boxes.astype(np.int32), (num, 8)).tolist()
+        fi_w  = open(save_path, 'w', encoding='utf-8') 
+        for i in range(num):
+            box = boxes[i]
+            text = ','.join([str(j) for j in box]) + '\n'
+            fi_w.write(text)
+        fi_w.close()
 
     def visualize_heatmap(self, headmap, canvas=None):
         

@@ -5,7 +5,7 @@ import cv2
 from shapely.geometry import Polygon
 import pyclipper
 
-class MakeSegDetectorData(object):
+class MakeShrinkMap(object):
     def __init__(self, min_text_size=8, shrink_ratio=0.4, gen_geometry=False):
         self.min_text_size = min_text_size
         self.shrink_ratio  = shrink_ratio
@@ -77,6 +77,15 @@ class MakeSegDetectorData(object):
             data.update(geo_map=geo_map)
         return data
 
+    
+    def is_poly_outside_rect(self, poly, x, y, w, h):
+        poly = np.array(poly)
+        if poly[:, 0].max() < x or poly[:, 0].min() > x + w:
+            return True
+        if poly[:, 1].max() < y or poly[:, 1].min() > y + h:
+            return True
+        return False
+
     def validate_polygons(self, polygons, ignore_tags, h, w):
         
         num_polys = len(polygons)
@@ -85,9 +94,12 @@ class MakeSegDetectorData(object):
         assert num_polys == len(ignore_tags)
 
         for i in range(num_polys):
-            area = self.polygon_area(polygons[i])
+            if self.is_poly_outside_rect(polygons[i], 0, 0, w, h):
+                ignore_tags[i] = True
+                continue
             polygons[i][:, 0] = np.clip(polygons[i][:, 0], 0, w - 1)
             polygons[i][:, 1] = np.clip(polygons[i][:, 1], 0, h - 1)
+            area = self.polygon_area(polygons[i])
             if abs(area) < 1:
                 ignore_tags[i] = True
             if area > 0:

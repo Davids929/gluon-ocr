@@ -5,7 +5,7 @@ from mxnet.gluon import nn
 
 class AttEncoder(nn.HybridBlock):
     def __init__(self, stages, hidden_dim=256, num_layers=2,
-                 match_dim=256, dropout=0.1, rnn_type='lstm',
+                 match_dim=512, dropout=0.1, rnn_type='lstm',
                  **kwargs):
 
         super(AttEncoder, self).__init__(**kwargs)
@@ -23,12 +23,15 @@ class AttEncoder(nn.HybridBlock):
 
     def hybrid_forward(self, F, x, mask):
         x = self.stages(x)
-        x = F.reshape(x, shape=(0, 0, -1))
         x = F.broadcast_mul(x, mask)
-        x = F.transpose(x, axes=(0, 2, 1))
+        x = F.transpose(x, axes=(0, 3, 2, 1))
+        x = F.reshape(x, shape=(0, -3, 0))
+        mask = F.transpose(mask, axes=(0, 1, 3, 2))
+        mask = F.reshape(mask, shape=(0, 0, -1))
+        
         output = self.rnn(x)
         out_proj = self.pre_compute(output)
-        return output, out_proj
+        return output, out_proj, mask
 
 def get_encoder(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
                 norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):

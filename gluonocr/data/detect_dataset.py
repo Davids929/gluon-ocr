@@ -70,7 +70,7 @@ class DBDataset(Dataset):
             cv2.imwrite('gt.jpg',gt.astype('uint8'))
             mask = data['mask']*255
             cv2.imwrite('mask.jpg', mask.astype('uint8'))
-            thresh_map = data['thresh_map']*255 ## * data['thresh_mask']
+            thresh_map = data['thresh_map']*255 
             cv2.imwrite('thresh.jpg', thresh_map.astype('uint8'))
             thresh_mask = data['thresh_mask']*255
             cv2.imwrite('thresh_mask.jpg', thresh_mask.astype('uint8'))
@@ -143,7 +143,7 @@ class DBDataset(Dataset):
 
 class EASTDataset(DBDataset):
     def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
-                 min_text_size=8, shrink_ratio=0.3, debug=False):
+                 min_text_size=8, shrink_ratio=0.3, debug=False, mode='train'):
         super(EASTDataset, self).__init__(img_dir, lab_dir, augment_fns=augment_fns, 
                                           img_size=img_size,min_text_size=min_text_size, 
                                           shrink_ratio=shrink_ratio, debug=debug)

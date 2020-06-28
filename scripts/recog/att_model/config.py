@@ -8,6 +8,8 @@ def parse_args():
                         help="Base network name which serves as feature extraction base.")
     parser.add_argument('--num-layers', type=int, default=50,
                         help="The number layers of base network.")
+    parser.add_argument('--dataset-name', type=str, default='icdar15',
+                        help='The name of training dataset.')
     parser.add_argument('--batch-size', type=int, default=64,
                         help='Training mini-batch size')
     parser.add_argument('--voc-path', type=str, default='',
@@ -70,7 +72,6 @@ def parse_args():
                         help='export model')
 
     args = parser.parse_args()
-    args.save_prefix = args.save_prefix + '_'.join(('att-model', args.network+str(args.num_layers)))
     args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
     #args.train_data_path = ['/home/idcard/data/receipts/val_lines.txt']
     args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',

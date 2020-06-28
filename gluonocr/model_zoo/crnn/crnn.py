@@ -16,16 +16,22 @@ class CRNN(nn.HybridBlock):
                 self.stn = STN()
             self.lstm = gluon.rnn.LSTM(hidden_size, num_layers, layout='NTC',
                                     dropout=dropout, bidirectional=use_bilstm)
+            self.dropout = nn.Dropout(dropout)
             self.fc   = nn.Dense(voc_size, flatten=False)
 
-    def hybrid_forward(self, F, x, mask):
+    def hybrid_forward(self, F, x, mask=None):
+
         if self.use_stn:
             x = self.stn(x)
         x = self.stages(x)
-        x = F.reshape(x, (0, 0, -1))
-        x = F.broadcast_mul(x, mask)
-        x = F.transpose(x, axes=(0, 2, 1))
+        x = F.transpose(x, axes=(0, 3, 2, 1))
+        x = F.reshape(x, (0, -3, 0))
+        if mask is not None:
+            mask = F.transpose(mask, axes=(0, 3, 2, 1))
+            mask = F.reshape(mask, (0, -3, 0))
+            x = F.broadcast_mul(x, mask)
         x = self.lstm(x)
+        x = self.dropout(x)
         x = self.fc(x)
         return x
 

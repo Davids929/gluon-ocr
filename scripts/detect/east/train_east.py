@@ -41,7 +41,7 @@ class Trainer(object):
             self.export_model()
         self.init_model()
         self.net.collect_params().reset_ctx(self.ctx)
-        self.loss = EASTLoss(alpha=1.0)
+        self.loss = EASTLoss(alpha=10.0)
         self.sum_loss  = mx.metric.Loss('SumLoss')
         self.l1_loss   = mx.metric.Loss('SmoothL1Loss')
         self.bce_loss  = mx.metric.Loss('BalanceCELoss')
@@ -60,10 +60,10 @@ class Trainer(object):
         augment = PointAugmenter()
         train_dataset = EASTDataset(args.train_img_dir, 
                                     args.train_lab_dir,
-                                    augment,
+                                    augment, mode='train',
                                     img_size=(args.data_shape, args.data_shape))
         val_dataset  = EASTDataset(args.train_img_dir, 
-                                    args.train_lab_dir,
+                                    args.train_lab_dir, mode='val',
                                     img_size=(args.data_shape, args.data_shape))
 
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, 

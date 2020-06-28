@@ -46,6 +46,12 @@ class Trainer(object):
                                     start_symbol=start, end_symbol=end,
                                     decoder_kwargs=decoder_kwargs)
             self.async_net = self.net
+
+        model_name = '%s-%s%d-att-model'%(args.dataset_name, args.network, args.num_layers)
+        if not os.path.exists(args.save_prefix):
+            os.mkdir(args.save_prefix)
+        args.save_prefix += model_name
+        
         self.net.hybridize()
         if args.export_model:
             self.export_model()
@@ -148,7 +154,7 @@ class Trainer(object):
 
             for i, batch in enumerate(self.train_dataloader):
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
-                mask     = mx.nd.reshape(batch[1][:,:, ::32, ::8], (0, 0, -1))
+                mask     = batch[1][:,:, ::32, ::8]
                 src_mask = gluon.utils.split_and_load(mask, ctx_list=self.ctx)
                 src_targ = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 tag_lab  = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
@@ -168,13 +174,13 @@ class Trainer(object):
                 self.acc_metric.update(outputs, tl, tm)
                 self.loss_metric.update(0, l_list)
                 if args.log_interval and not (i + 1) % args.log_interval:
-                    name1, acc1 = self.acc_metric.get()
+                    name1, acc1  = self.acc_metric.get()
                     name2, loss2 = self.loss_metric.get()
                     logger.info('[Epoch {}][Batch {}], LR: {:.2E}, Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}'.format(
                             epoch, i, trainer.learning_rate, args.batch_size/(time.time()-btic), name1, acc1, name2, loss2))
                 btic = time.time()
 
-            name1, acc1 = self.acc_metric.get()
+            name1, acc1  = self.acc_metric.get()
             name2, loss2 = self.loss_metric.get()
             logger.info('[Epoch {}] Training cost: {:.3f}, {}={:.3f}, {}={:.3f}'.format(
                 epoch, (time.time()-tic), name1, acc1, name2, loss2))
@@ -198,7 +204,7 @@ class Trainer(object):
         for i, data in enumerate(self.val_dataloader):
             s_data = data[0].as_in_context(self.ctx[0])
             s_mask = data[1].as_in_context(self.ctx[0])
-            s_mask = mx.nd.reshape(s_mask[:, :, ::32, ::8], (0, 0, -1))
+            s_mask = s_mask[:, :, ::32, ::8]
             t_label = data[3]
             t_mask = data[4]
             bs, seq_len = t_label.shape
@@ -212,7 +218,7 @@ class Trainer(object):
 
     def export_model(self):
         data = mx.nd.ones((1, 3, 32, 128), ctx=self.ctx[0])
-        mask = mx.nd.ones((1, 1, 16), ctx=self.ctx[0])
+        mask = mx.nd.ones((1, 1, 1, 16), ctx=self.ctx[0])
         states = self.net.begin_state(1, self.ctx[0])
         self.net.load_parameters(args.resume.strip())
         self.net.collect_params().reset_ctx(self.ctx)

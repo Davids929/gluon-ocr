@@ -38,6 +38,12 @@ class Trainer(object):
             self.net = get_crnn(args.network, args.num_layers, pretrained_base=True,
                                 voc_size=voc_size+1)
             self.async_net = self.net
+        
+        model_name = '%s-%s%d-crnn'%(args.dataset_name, args.network, args.num_layers)
+        if not os.path.exists(args.save_prefix):
+            os.mkdir(args.save_prefix)
+        args.save_prefix += model_name
+
         self.net.hybridize()
         self.init_model()
         self.net.collect_params().reset_ctx(self.ctx)
@@ -110,8 +116,8 @@ class Trainer(object):
                         step_factor=args.lr_decay, power=2),
             ])
 
-        trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
-            {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler})
+        trainer = gluon.Trainer(self.net.collect_params(), 'adam',
+            {'wd': args.wd, 'lr_scheduler': lr_scheduler}) #'momentum': args.momentum,
 
         # set up logger
         logging.basicConfig()
@@ -134,7 +140,7 @@ class Trainer(object):
             self.net.hybridize()
             for i, batch in enumerate(self.train_dataloader):
                 src_data = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
-                fea_mask = mx.nd.reshape(batch[1][:, :, ::32, ::4], (0, 0, -1))
+                fea_mask = batch[1][:, :, ::32, ::4]
                 fea_mask = gluon.utils.split_and_load(fea_mask, ctx_list=self.ctx)
                 tag_lab  = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
                 tag_mask = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
@@ -183,7 +189,7 @@ class Trainer(object):
         for i, data in enumerate(self.val_dataloader):
             s_data = data[0].as_in_context(self.ctx[0])
             s_mask = data[1].as_in_context(self.ctx[0])
-            s_mask = mx.nd.reshape(s_mask[:, :, ::32, ::4], (0, 0, -1))
+            s_mask = s_mask[:, :, ::32, ::4]
             t_label = data[2]
             t_mask = data[3]
             out  = self.net(s_data, s_mask)

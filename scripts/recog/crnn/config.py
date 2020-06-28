@@ -3,11 +3,13 @@ import os
 import argparse
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train SSD networks.')
+    parser = argparse.ArgumentParser(description='Train CRNN networks.')
     parser.add_argument('--network', type=str, default='resnet',
                         help="Base network name which serves as feature extraction base.")
     parser.add_argument('--num-layers', type=int, default=34,
                         help="The number layers of base network.")
+    parser.add_argument('--dataset-name', type=str, default='icdar15',
+                        help='The name of training dataset.')
     parser.add_argument('--batch-size', type=int, default=128,
                         help='Training mini-batch size')
     parser.add_argument('--voc-path', type=str, default='',
@@ -70,13 +72,18 @@ def parse_args():
                         help='export model')
 
     args = parser.parse_args()
-    args.save_prefix = args.save_prefix + '_'.join(('crnn', args.network+str(args.num_layers)))
-    args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
-    args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',
-                            '/home/idcard/data/receipts/baidu_lines.txt',
-                            '/home/idcard/data/receipts/concat_lines.txt',
-                            '/home/idcard/data/invoice/train_lines.txt',
-                            '/home/idcard/data/invoice/concat_lines.txt']
+    # args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
+    # args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',
+    #                         '/home/idcard/data/receipts/baidu_lines.txt',
+    #                         '/home/idcard/data/receipts/concat_lines.txt',
+    #                         '/home/idcard/data/invoice/train_lines.txt',
+    #                         '/home/idcard/data/invoice/concat_lines.txt']
+    # args.val_data_path   = ['/home/idcard/data/receipts/val_lines.txt']
+
+    args.voc_path    = '/home/idcard/demo/scene_ocr/data/dict.txt'
+    args.train_data_path = ['/home/idcard/demo/scene_ocr/data/train_list.txt',
+                            '/home/idcard/demo/scene_ocr/data/concat_list.txt',
+                            ]
     args.val_data_path   = ['/home/idcard/data/receipts/val_lines.txt']
     return args
 

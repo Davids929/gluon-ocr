@@ -32,6 +32,7 @@ class Augmenter(object):
                    iaa.GaussianBlur((0, 2)),
                    iaa.Multiply((0.8, 1.2)),
                    iaa.Add((-15, 15), per_channel=0.5),
+                   iaa.Affine(rotate=(-5, 5)),
                    ]
         seq = iaa.SomeOf(3, seqence, random_order=True)
         return seq

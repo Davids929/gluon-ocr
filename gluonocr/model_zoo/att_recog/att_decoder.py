@@ -6,7 +6,7 @@ from ...nn.attention_cell import _get_attention_cell
 
 
 class AttDecoder(nn.HybridBlock):
-    def __init__(self, embed_dim=256, match_dim=256, hidden_dim=256, 
+    def __init__(self, embed_dim=512, match_dim=512, hidden_dim=512, 
                  voc_size=37, num_layers=2, dropout=0.1, bilstm=False,
                  attention_cell='mlp_luong', **kwargs):
 

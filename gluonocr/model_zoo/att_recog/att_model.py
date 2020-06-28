@@ -16,8 +16,8 @@ class AttModel(nn.HybridBlock):
             self.decoder = decoder
 
     def hybrid_forward(self, F, x, mask, targ_input, h, c):
-        en_out, en_proj = self.encoder(x, mask)
-        states = [en_out, en_proj, mask,  h, c]
+        en_out, en_proj, mask = self.encoder(x, mask)
+        states = [en_out, en_proj, mask, h, c]
         tag_input = F.transpose(targ_input, axes=(1, 0)).expand_dims(axis=-1)
 
         def train_func(out, states):

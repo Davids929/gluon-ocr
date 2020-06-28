@@ -18,7 +18,8 @@ class FixSizeDataset(Dataset):
         self.min_divisor = min_divisor
         self.add_symbol  = False if start_sym==None or end_sym==None else True
         self.start_sym   = start_sym
-        self.end_sym     = end_sym if self.add_symbol else -1
+        self.end_sym     = end_sym
+        self.pad_sym     = -1 if end_sym == None else end_sym 
         self.augment_fn  = augment_fn
         self.word2id   = self._load_voc_dict(voc_path)
         self.word_list = list(self.word2id.keys())
@@ -66,7 +67,8 @@ class FixSizeDataset(Dataset):
         return len(self.imgs_list)
 
     def text2ids(self, text, text_len):
-        ids       = mx.nd.ones(shape=(text_len), dtype='float32')*self.end_sym
+        
+        ids       = mx.nd.ones(shape=(text_len), dtype='float32')*self.pad_sym
         ids_mask  = mx.nd.zeros(shape=(text_len), dtype='float32')
         char_list = list(text)
         if self.add_symbol:
@@ -103,7 +105,7 @@ class FixSizeDataset(Dataset):
 
     def image_resize(self, img_np, max_width=512):
         h, w = img_np.shape[:2]
-        if h > 4*w:
+        if h > w:
             img_np = np.rot90(img_np)
             h, w = w, h
 
@@ -117,6 +119,7 @@ class FixSizeDataset(Dataset):
         img_path = self.imgs_list[idx]
         text     = self.labs_list[idx]
         img_np   = cv2.imread(img_path)
+        
         if img_np is None:
             return self.__getitem__(idx-1)
         img_np   = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
@@ -125,9 +128,9 @@ class FixSizeDataset(Dataset):
             img_np = self.augment_fn(img_np)
         h, w = img_np.shape[:2]
         img_nd   = mx.nd.array(img_np)
-        img_nd   = normalize_fn(img_nd)
-        img_data = mx.nd.zeros((3, self.short_side, self.fix_width), dtype='float32')
-        img_data[:, :h, :w] = img_nd
+        img_data = mx.nd.zeros((self.short_side, self.fix_width, 3), dtype='float32')
+        img_data[:h, :w, :] = img_nd
+        img_data = normalize_fn(img_data)
         img_mask = mx.nd.zeros((1, self.short_side, self.fix_width), dtype='float32')
         img_mask[:, :h, :w] = 1.0
         lab, lab_mask = self.text2ids(text, self.max_len)
@@ -157,7 +160,7 @@ class BucketDataset(FixSizeDataset):
         h, w = img_shape[:2]
         text_ratio = math.ceil((text_len+1)/self.split_text_len)
         text_len = self.split_text_len*text_ratio
-        if h > 4*w:
+        if h > w:
             w, h = img_shape[:2]
         if w/h > self.max_width/self.short_side:
             return (self.short_side, self.max_width, text_len)

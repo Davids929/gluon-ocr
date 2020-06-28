@@ -31,7 +31,6 @@ class MaskAugmenter(object):
     def get_default_aug(self):
         pixel_seq = iaa.SomeOf(3, [iaa.LinearContrast((0.8, 1.2)),
                                    iaa.Multiply((0.8, 1.2)),
-                                   #iaa.Grayscale((0, 1.0)),
                                    iaa.GaussianBlur((0, 1)),
                                    iaa.Add((-10, 10), per_channel=0.2)
                                    ])

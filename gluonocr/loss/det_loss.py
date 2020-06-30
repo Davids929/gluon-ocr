@@ -102,9 +102,9 @@ class DBLoss(Loss):
         return loss, metrics
 
 class EASTLoss(Loss):
-    def __init__(self, alpha=0.1, rho=1.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
+    def __init__(self, lambd=1.0, rho=1.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
         super(EASTLoss, self).__init__(weight, batch_axis, **kwargs)
-        self._alpha = alpha
+        self._lambd = lambd
         self._rho   = rho
         self._eps   = eps
         self.seg_loss = BalanceCELoss(eps=eps)
@@ -123,12 +123,11 @@ class EASTLoss(Loss):
         
         mask      = lab_mask * lab_score
         l1_loss   = mx.nd.abs(lab_geo - pred_geo)
-        l1_loss   = mx.nd.where(l1_loss > lab_score, l1_loss - 0.5, 
-                                mx.nd.square(l1_loss))
+        l1_loss   = mx.nd.where(l1_loss > self._rho, l1_loss - 0.5*self._rho, 
+                                (0.5 / self._rho) * mx.nd.square(l1_loss))
         l1_loss  = norm_weight * mx.nd.mean(l1_loss, axis=1, keepdims=True) * mask
-        l1_loss  = mx.nd.sum(l1_loss, axis=self._batch_axis, exclude=True) / \
-                        (mx.nd.sum(mask, axis=self._batch_axis, exclude=True)+self._eps)
+        l1_loss  = mx.nd.sum(l1_loss, axis=self._batch_axis, exclude=True) / (mx.nd.sum(mask)+self._eps)
 
-        loss = self._alpha * seg_loss + l1_loss
+        loss = self._lambd * seg_loss + l1_loss
         metrics = dict(bce_loss=seg_loss, l1_loss=l1_loss)
         return loss, metrics

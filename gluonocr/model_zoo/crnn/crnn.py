@@ -5,7 +5,7 @@ from mxnet.gluon import nn
 from ...nn import STN
 
 class CRNN(nn.HybridBlock):
-    def __init__(self, stages, hidden_size=256, num_layers=2, dropout=0.1, 
+    def __init__(self, stages, hidden_size=512, num_layers=2, dropout=0.1, 
                  voc_size=37, use_bilstm=True, use_stn=False, **kwargs):
         super(CRNN, self).__init__(**kwargs)
         
@@ -43,17 +43,17 @@ def get_crnn(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
     from ..mobilenetv3 import get_mobilenet_v3
     
     if backbone_name.lower() == 'resnet':
-        base_net = get_resnet(1, num_layers, strides=[(1, 1), (2, 1), (2, 1), (2, 1)], 
+        base_net = get_resnet(1, num_layers, strides=[(2, 1), (1, 1), (2, 2), (2, 1), (2, 1)], 
                               pretrained=pretrained_base, norm_layer=norm_layer, 
                               norm_kwargs=norm_kwargs)
         backbone = base_net.features[:-1]
     elif backbone_name.lower() == 'resnext':
-        base_net = get_resnext(num_layers, strides=[(1, 1), (2, 1), (2, 1), (2, 1)], 
+        base_net = get_resnext(num_layers, strides=[(2, 1), (1, 1), (2, 2), (2, 1), (2, 1)], 
                               pretrained=pretrained_base, norm_layer=norm_layer, 
                               norm_kwargs=norm_kwargs)
         backbone = base_net.features[:-1]
     elif backbone_name.lower() == 'vgg':
-        base_net = get_vgg(num_layers, strides=[(2, 2), (2, 1), (2, 1), (2, 1)], 
+        base_net = get_vgg(num_layers, strides=[(2, 1), (2, 2), (2, 2), (2, 1), (2, 1)], 
                               pretrained=pretrained_base, norm_layer=norm_layer, 
                               norm_kwargs=norm_kwargs)
     elif backbone_name.lower() == 'mobilenetv3':

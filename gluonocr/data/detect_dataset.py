@@ -49,9 +49,8 @@ class DBDataset(Dataset):
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)
-        if random.uniform(0, 1) > 0.5:
-            img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
-
+        
+        img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
         polygons, ignore_tags = self._load_ann(lab_path)
         if len(polygons) == 0:
             return self.__getitem__(idx-1)

@@ -387,16 +387,16 @@ class ResNetV1(HybridBlock):
         with self.name_scope():
             self.features = nn.HybridSequential(prefix='')
             if thumbnail:
-                self.features.add(_conv3x3(channels[0], 1, 0))
+                self.features.add(_conv3x3(channels[0], strides[0], 0))
             else:
-                self.features.add(nn.Conv2D(channels[0], 7, 2, 3, use_bias=False))
+                self.features.add(nn.Conv2D(channels[0], 7, strides[0], 3, use_bias=False))
                 self.features.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
                 self.features.add(nn.Activation('relu'))
                 self.features.add(nn.MaxPool2D(3, 2, 1))
 
             for i, num_layer in enumerate(layers):
                 self.features.add(self._make_layer(block, num_layer, channels[i+1],
-                                                   strides[i], i+1, in_channels=channels[i],
+                                                   strides[i+1], i+1, in_channels=channels[i],
                                                    last_gamma=last_gamma, use_se=use_se,
                                                    norm_layer=norm_layer, norm_kwargs=norm_kwargs))
             self.features.add(nn.GlobalAvgPool2D())
@@ -460,9 +460,9 @@ class ResNetV2(HybridBlock):
             self.features.add(norm_layer(scale=False, center=False,
                                          **({} if norm_kwargs is None else norm_kwargs)))
             if thumbnail:
-                self.features.add(_conv3x3(channels[0], 1, 0))
+                self.features.add(_conv3x3(channels[0], strides[0], 0))
             else:
-                self.features.add(nn.Conv2D(channels[0], 7, 2, 3, use_bias=False))
+                self.features.add(nn.Conv2D(channels[0], 7, strides[0], 3, use_bias=False))
                 self.features.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
                 self.features.add(nn.Activation('relu'))
                 self.features.add(nn.MaxPool2D(3, 2, 1))
@@ -470,7 +470,7 @@ class ResNetV2(HybridBlock):
             in_channels = channels[0]
             for i, num_layer in enumerate(layers):
                 self.features.add(self._make_layer(block, num_layer, channels[i+1],
-                                                   strides[i], i+1, in_channels=in_channels,
+                                                   strides[i+1], i+1, in_channels=in_channels,
                                                    last_gamma=last_gamma, use_se=use_se,
                                                    norm_layer=norm_layer, norm_kwargs=norm_kwargs))
                 in_channels = channels[i+1]
@@ -513,7 +513,7 @@ resnet_block_versions = [{'basic_block': BasicBlockV1, 'bottle_neck': Bottleneck
 
 
 # Constructor
-def get_resnet(version, num_layers, strides=[(1,1), (2,2), (2,2), (2,2)], 
+def get_resnet(version, num_layers, strides=[(2, 2), (1,1), (2,2), (2,2), (2,2)], 
                pretrained=False, ctx=cpu(), root='~/.mxnet/models', 
                use_se=False, **kwargs):
     r"""ResNet V1 model from `"Deep Residual Learning for Image Recognition"

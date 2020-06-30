@@ -168,10 +168,10 @@ class ResNext(HybridBlock):
         with self.name_scope():
             self.features = nn.HybridSequential(prefix='')
             if not deep_stem:
-                self.features.add(nn.Conv2D(channels=64, kernel_size=7, strides=2,
+                self.features.add(nn.Conv2D(channels=64, kernel_size=7, strides=strides[0],
                                             padding=3, use_bias=False))
             else:
-                self.features.add(nn.Conv2D(channels=stem_width, kernel_size=3, strides=2,
+                self.features.add(nn.Conv2D(channels=stem_width, kernel_size=3, strides=strides[0],
                                             padding=1, use_bias=False))
                 self.features.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
                 self.features.add(nn.Activation('relu'))
@@ -186,7 +186,7 @@ class ResNext(HybridBlock):
             self.features.add(nn.Activation('relu'))
             self.features.add(nn.MaxPool2D(3, 2, 1))
             for i, num_layer in enumerate(layers):
-                self.features.add(self._make_layer(channels, num_layer, strides[i], last_gamma, use_se,
+                self.features.add(self._make_layer(channels, num_layer, strides[i+1], last_gamma, use_se,
                                                    False if i == 0 else avg_down, i + 1,
                                                    norm_layer=norm_layer, norm_kwargs=norm_kwargs))
                 channels *= 2
@@ -221,7 +221,7 @@ resnext_spec = {50: [3, 4, 6, 3],
 
 
 # Constructor
-def get_resnext(num_layers, strides=[(1,1), (2,2), (2,2), (2,2)],
+def get_resnext(num_layers, strides=[(2,2), (1,1), (2,2), (2,2), (2,2)],
                 cardinality=32, bottleneck_width=4, use_se=False, deep_stem=False,
                 avg_down=False, pretrained=False, ctx=cpu(),
                 root=os.path.join('~', '.mxnet', 'models'), **kwargs):

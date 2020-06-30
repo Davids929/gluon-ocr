@@ -90,7 +90,8 @@ class Trainer(object):
         if args.num_samples < 0:
             args.num_samples = len(train_dataset)
         batch_size = None if args.bucket_mode else args.batch_size
-        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, 
+        shuffle    = None if args.bucket_mode else True 
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, 
                                       batch_sampler=train_sampler, pin_memory=True,
                                       num_workers=args.num_workers)
         val_dataloader = DataLoader(val_dataset, batch_size=batch_size, 

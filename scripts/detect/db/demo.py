@@ -8,7 +8,7 @@ import mxnet as mx
 from mxnet import gluon
 import sys
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
-from gluonocr.utils.db_postprocess import DBPostProcess
+from gluonocr.post_process import DBPostProcess
 
 parser = argparse.ArgumentParser(description='Text Detection inference.')
 parser.add_argument('--model-path', type=str, help='model file path.')

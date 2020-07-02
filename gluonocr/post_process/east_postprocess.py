@@ -1,5 +1,5 @@
 import numpy as np
-from .locality_aware_nms import nms_locality
+from ..utils.locality_aware_nms import nms_locality
 import cv2
 class EASTPostPocess(object):
     """

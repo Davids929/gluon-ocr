@@ -9,7 +9,7 @@ import time
 import mxnet as mx
 from mxnet import gluon
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
-from gluonocr.utils.east_postprocess import EASTPostPocess
+from gluonocr.post_process import EASTPostPocess
 
 parser = argparse.ArgumentParser(description='Text detection inference.')
 parser.add_argument('--model-path', type=str, help='model file path.')

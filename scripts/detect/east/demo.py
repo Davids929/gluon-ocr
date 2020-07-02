@@ -11,7 +11,7 @@ from mxnet import gluon
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
 from gluonocr.utils.east_postprocess import EASTPostPocess
 
-parser = argparse.ArgumentParser(description='Text Recognition Training')
+parser = argparse.ArgumentParser(description='Text detection inference.')
 parser.add_argument('--model-path', type=str, help='model file path.')
 parser.add_argument('--params-path', type=str, help='params file path.')
 parser.add_argument('--image-path', type=str, help='image path')

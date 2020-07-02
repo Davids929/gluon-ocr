@@ -72,18 +72,20 @@ def parse_args():
                         help='export model')
 
     args = parser.parse_args()
-    # args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
-    # args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',
-    #                         '/home/idcard/data/receipts/baidu_lines.txt',
-    #                         '/home/idcard/data/receipts/concat_lines.txt',
-    #                         '/home/idcard/data/invoice/train_lines.txt',
-    #                         '/home/idcard/data/invoice/concat_lines.txt']
-    # args.val_data_path   = ['/home/idcard/data/receipts/val_lines.txt']
-
-    args.voc_path    = '/home/idcard/demo/scene_ocr/data/dict.txt'
-    args.train_data_path = ['/home/idcard/demo/scene_ocr/data/train_list.txt',
-                            '/home/idcard/demo/scene_ocr/data/concat_list.txt',
+    args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
+    args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',
+                            '/home/idcard/data/receipts/baidu_lines.txt',
+                            '/home/idcard/data/receipts/train_lines0624.txt',
+                            #'/home/idcard/data/receipts/concat_lines.txt',
+                            # '/home/idcard/data/invoice/train_lines.txt',
+                            # '/home/idcard/data/invoice/concat_lines.txt',
                             ]
+    args.val_data_path   = ['/home/idcard/data/receipts/val_lines.txt']
+
+    # args.voc_path    = '/home/idcard/demo/scene_ocr/data/dict.txt'
+    # args.train_data_path = ['/home/idcard/demo/scene_ocr/data/train_list.txt',
+    #                         '/home/idcard/demo/scene_ocr/data/concat_list.txt',
+    #                        ]
     args.val_data_path   = ['/home/idcard/data/receipts/val_lines.txt']
     return args
 

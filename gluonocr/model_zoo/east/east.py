@@ -18,12 +18,16 @@ class EAST(nn.HybridBlock):
                 self.stages.add(stages[i])
             for i in range(3):
                 self.convs.add(self._make_layers(channels[i]))
-            self.predictor = nn.HybridSequential()
-            self.predictor.add(nn.Conv2D(channels[-1], 3, 1, 1))
-            self.predictor.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
-            self.predictor.add(nn.Activation('relu'))
-            self.pred_score = nn.Conv2D(1, 1, 1)
-            self.pred_geo   = nn.Conv2D(8, 1, 1)
+            self.pred_score = nn.HybridSequential()
+            self.pred_geo   = nn.HybridSequential()
+            self.pred_score.add(nn.Conv2D(channels[-1], 3, 1, 1))
+            self.pred_score.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
+            self.pred_score.add(nn.Activation('relu'))
+            self.pred_score.add(nn.Conv2D(1, 1, 1))
+            self.pred_geo.add(nn.Conv2D(channels[-1], 3, 1, 1))
+            self.pred_geo.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
+            self.pred_geo.add(nn.Activation('relu'))
+            self.pred_geo.add(nn.Conv2D(8, 1, 1))
 
     def _make_layers(self, channel, ksize=3, stride=1, padding=1, act_type='relu'):
         layer = nn.HybridSequential()
@@ -47,10 +51,9 @@ class EAST(nn.HybridBlock):
             h = F.concat(h, feats[i+1], dim=1)
             h = self.convs[i](h)
 
-        pred = self.predictor(h)
-        scores = self.pred_score(pred)
+        scores = self.pred_score(h)
         scores = F.sigmoid(scores)
-        geometrys = self.pred_geo(pred)
+        geometrys = self.pred_geo(h)
         geometrys = (F.sigmoid(geometrys) - 0.5) * 2 * 800
         return scores, geometrys
 

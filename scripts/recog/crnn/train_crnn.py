@@ -38,7 +38,7 @@ class Trainer(object):
             self.net = get_crnn(args.network, args.num_layers, pretrained_base=True,
                                 voc_size=voc_size+1)
             self.async_net = self.net
-        
+
         model_name = '%s-%s%d-crnn'%(args.dataset_name, args.network, args.num_layers)
         if not os.path.exists(args.save_prefix):
             os.mkdir(args.save_prefix)
@@ -117,8 +117,8 @@ class Trainer(object):
                         step_factor=args.lr_decay, power=2),
             ])
 
-        trainer = gluon.Trainer(self.net.collect_params(), 'adam',
-            {'wd': args.wd, 'lr_scheduler': lr_scheduler}) #'momentum': args.momentum,
+        trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
+            {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler}) #
 
         # set up logger
         logging.basicConfig()
@@ -150,11 +150,15 @@ class Trainer(object):
                 with mx.autograd.record():
                     for sd, fm, tl, tm in zip(src_data, fea_mask, tag_lab, tag_mask):
                         out = self.net(sd, fm)
-                        with mx.autograd.pause():
-                            bs, seq_len = out.shape[:2]
                         lab_length  = mx.nd.sum(tm, axis=-1)
-                        pred_length = seq_len*mx.nd.ones((bs), dtype='float32').as_in_context(sd.context)
+                        pred_length = mx.nd.sum_axis(fm, axis=[1,2,3])
                         loss = self.loss(out, tl, pred_length, lab_length)
+                        with mx.autograd.pause():
+                            ll = loss.asnumpy()
+                            if np.sum(np.isnan(ll)) > 0:
+                                print('loss is nan')
+                                print(ll)
+                                continue
                         l_list.append(loss)
                     mx.autograd.backward(l_list)
                 trainer.step(args.batch_size)

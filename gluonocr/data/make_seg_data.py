@@ -58,8 +58,6 @@ class MakeShrinkMap(object):
                     # geo map.
                     y_in_poly = xy_in_poly[:, 0]
                     x_in_poly = xy_in_poly[:, 1]
-                    polygon[:, 0] = np.minimum(np.maximum(polygon[:, 0], 0), w)
-                    polygon[:, 1] = np.minimum(np.maximum(polygon[:, 1], 0), h)
                     for pno in range(4):
                         geo_channel_beg = pno * 2
                         geo_map[y_in_poly, x_in_poly, geo_channel_beg] =\

@@ -119,7 +119,7 @@ class Trainer(object):
 
         trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
             {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler}) #
-
+        
         # set up logger
         logging.basicConfig()
         logger = logging.getLogger()

@@ -5,7 +5,7 @@ from mxnet.gluon import nn
 from ...nn import STN
 
 class CRNN(nn.HybridBlock):
-    def __init__(self, stages, hidden_size=512, num_layers=2, dropout=0.1, 
+    def __init__(self, stages, hidden_size=256, num_layers=2, dropout=0.1, 
                  voc_size=37, use_bilstm=True, use_stn=False, **kwargs):
         super(CRNN, self).__init__(**kwargs)
         

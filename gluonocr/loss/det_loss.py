@@ -1,82 +1,8 @@
 #coding=utf-8
 import mxnet as mx
 from mxnet import gluon
-from mxnet.gluon.loss import Loss, _apply_weighting
-import numpy as np
-
-class DiceLoss(Loss):
-    def __init__(self, eps=1e-6, weight=1., batch_axis=0, **kwargs):
-        super(DiceLoss, self).__init__(weight, batch_axis, **kwargs)
-        self._eps = eps
-
-    def hybrid_forward(self, F, pred, label, mask):
-        inter = F.sum(pred*label*mask, axis=self._batch_axis, exclude=True)
-        union = F.sum(pred*mask, axis=self._batch_axis, exclude=True) + \
-                F.sum(label*mask, axis=self._batch_axis, exclude=True) + self._eps
-        loss  = 1 - 2.0*inter/union
-        return loss
-
-class MaskL1Loss(Loss):
-    def __init__(self, weight=1., batch_axis=0, **kwargs):
-        super(MaskL1Loss, self).__init__(weight, batch_axis, **kwargs)
-    
-    def hybrid_forward(self, F, pred, label, mask):
-        mask_sum = F.sum(mask)
-        loss = F.abs(label - pred)*mask
-        loss = _apply_weighting(F, loss, self._weight)
-        loss = F.sum(loss, axis=self._batch_axis, exclude=True)
-        return loss/(mask_sum+1)
-
-class BalanceL1Loss(Loss):
-    def __init__(self, negative_ratio=3.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
-        super(BalanceL1Loss, self).__init__(weight, batch_axis, **kwargs)
-        self.negative_ratio = negative_ratio
-        self._eps = eps
-
-    def hybrid_forward(self, F, pred, label, mask):
-        positive = (label * mask)
-        negative = ((1 - label) * mask)
-        with mx.autograd.pause():    
-            positive_count = int(F.sum(positive).asscalar())
-            negative_count = min(int(F.sum(negative).asscalar()),
-                            int(positive_count * self.negative_ratio))
-        loss = F.abs(label - pred)
-        negative_loss = (loss * negative).reshape((0, 0, -1))
-        rank = negative_loss.argsort(axis=1, is_ascend=0).argsort(axis=1)
-        hard_negative = rank < negative_count
-        negative_loss = F.where(hard_negative>0, negative_loss, F.zeros_like(negative_loss))
-        positive_loss = loss * positive
-        balance_loss  = (F.sum(positive_loss, axis=self._batch_axis, exclude=True) + \
-                        F.sum(negative_loss, axis=self._batch_axis, exclude=True)) / \
-                        (positive_count + negative_count + self._eps)
-        return balance_loss
-
-
-class BalanceCELoss(Loss):
-    def __init__(self, negative_ratio=3.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):
-        super(BalanceCELoss, self).__init__(weight, batch_axis, **kwargs)
-        self.negative_ratio = negative_ratio
-        self._eps = eps
-
-    def hybrid_forward(self, F, pred, label, mask):
-        positive = (label * mask)
-        negative = ((1 - label) * mask)
-        with mx.autograd.pause():    
-            positive_count = int(F.sum(positive).asscalar())
-            negative_count = min(int(F.sum(negative).asscalar()),
-                                int(positive_count * self.negative_ratio))
-        
-        loss = -(F.log(pred + self._eps) * label + F.log(1. - pred + self._eps) * (1. - label))
-        negative_loss = (loss * negative).reshape((0, 0, -1))
-        rank = negative_loss.argsort(axis=1, is_ascend=0).argsort(axis=1)
-        hard_negative = rank < negative_count
-        negative_loss = F.where(hard_negative>0, negative_loss, F.zeros_like(negative_loss))
-
-        positive_loss = loss * positive
-        balance_loss  = (F.sum(positive_loss, axis=self._batch_axis, exclude=True) + \
-                         F.sum(negative_loss, axis=self._batch_axis, exclude=True)) / \
-                          (positive_count + negative_count + self._eps)
-        return balance_loss
+from mxnet.gluon.loss import Loss
+from .base_loss import *
 
 class DBLoss(Loss):
     def __init__(self, eps=1e-6, l1_scale=10, bce_scale=5, weight=1., batch_axis=0, **kwargs):
@@ -117,7 +43,6 @@ class EASTLoss(Loss):
         lab_mask   = batch['mask']
         seg_loss   = self.seg_loss(pred_score, lab_score, lab_mask)
         norm_weight = lab_geo.slice_axis(axis=1, begin=8, end=None)
-        norm_weight = mx.nd.repeat(norm_weight, repeats=8, axis=1)
         lab_geo   = lab_geo.slice_axis(axis=1, begin=0, end=8)
         lab_score = mx.nd.repeat(lab_score, repeats=8, axis=1)
         

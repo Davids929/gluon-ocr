@@ -24,10 +24,12 @@ class EAST(nn.HybridBlock):
             self.pred_score.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
             self.pred_score.add(nn.Activation('relu'))
             self.pred_score.add(nn.Conv2D(1, 1, 1))
+            self.pred_score.add(nn.Activation('sigmoid'))
             self.pred_geo.add(nn.Conv2D(channels[-1], 3, 1, 1))
             self.pred_geo.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
             self.pred_geo.add(nn.Activation('relu'))
             self.pred_geo.add(nn.Conv2D(8, 1, 1))
+            self.pred_geo.add(nn.Activation('tanh'))
 
     def _make_layers(self, channel, ksize=3, stride=1, padding=1, act_type='relu'):
         layer = nn.HybridSequential()
@@ -52,9 +54,7 @@ class EAST(nn.HybridBlock):
             h = self.convs[i](h)
 
         scores = self.pred_score(h)
-        scores = F.sigmoid(scores)
-        geometrys = self.pred_geo(h)
-        geometrys = (F.sigmoid(geometrys) - 0.5) * 2 * 800
+        geometrys = self.pred_geo(h) * 800
         return scores, geometrys
 
 def get_east(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),

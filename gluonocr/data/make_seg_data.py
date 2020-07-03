@@ -1,5 +1,4 @@
-from collections import OrderedDict
-
+#coding=utf-8
 import numpy as np
 import cv2
 from shapely.geometry import Polygon
@@ -35,37 +34,38 @@ class MakeShrinkMap(object):
                 cv2.fillPoly(mask, polygon.astype(
                     np.int32)[np.newaxis, :, :], 0)
                 ignore_tags[i] = True
-            else:
-                polygon_shape = Polygon(polygon)
-                distance = polygon_shape.area * \
-                    (1 - np.power(self.shrink_ratio, 2)) / polygon_shape.length
-                subject = [tuple(l) for l in polygons[i]]
-                padding = pyclipper.PyclipperOffset()
-                padding.AddPath(subject, pyclipper.JT_ROUND,
-                                pyclipper.ET_CLOSEDPOLYGON)
-                shrinked = padding.Execute(-distance)
-                if shrinked == []:
-                    cv2.fillPoly(mask, polygon.astype(
-                        np.int32)[np.newaxis, :, :], 0)
-                    ignore_tags[i] = True
-                    continue
-                shrinked = np.array(shrinked[0]).reshape(-1, 2)
-                cv2.fillPoly(gt, [shrinked.astype(np.int32)], 1)
-                # generate geometry map
-                if self.gen_geometry:
-                    cv2.fillPoly(inst_mask, [shrinked.astype(np.int32)], i+1)
-                    xy_in_poly = np.argwhere(inst_mask == i+1)
-                    # geo map.
-                    y_in_poly = xy_in_poly[:, 0]
-                    x_in_poly = xy_in_poly[:, 1]
-                    for pno in range(4):
-                        geo_channel_beg = pno * 2
-                        geo_map[y_in_poly, x_in_poly, geo_channel_beg] =\
-                            x_in_poly - polygon[pno, 0]
-                        geo_map[y_in_poly, x_in_poly, geo_channel_beg+1] =\
-                            y_in_poly - polygon[pno, 1]
-                    geo_map[y_in_poly, x_in_poly, 8] = \
-                        1.0 / max(min(height, width), 1.0)
+                continue
+            
+            polygon_shape = Polygon(polygon)
+            distance = polygon_shape.area * \
+                (1 - np.power(self.shrink_ratio, 2)) / polygon_shape.length
+            subject = [tuple(l) for l in polygons[i]]
+            padding = pyclipper.PyclipperOffset()
+            padding.AddPath(subject, pyclipper.JT_ROUND,
+                            pyclipper.ET_CLOSEDPOLYGON)
+            shrinked = padding.Execute(-distance)
+            if shrinked == []:
+                cv2.fillPoly(mask, polygon.astype(
+                    np.int32)[np.newaxis, :, :], 0)
+                ignore_tags[i] = True
+                continue
+            shrinked = np.array(shrinked[0]).reshape(-1, 2)
+            cv2.fillPoly(gt, [shrinked.astype(np.int32)], 1)
+            # generate geometry map
+            if self.gen_geometry:
+                cv2.fillPoly(inst_mask, [shrinked.astype(np.int32)], i+1)
+                xy_in_poly = np.argwhere(inst_mask == i+1)
+                # geo map.
+                y_in_poly = xy_in_poly[:, 0]
+                x_in_poly = xy_in_poly[:, 1]
+                for pno in range(4):
+                    geo_channel_beg = pno * 2
+                    geo_map[y_in_poly, x_in_poly, geo_channel_beg] =\
+                        x_in_poly - polygon[pno, 0]
+                    geo_map[y_in_poly, x_in_poly, geo_channel_beg+1] =\
+                        y_in_poly - polygon[pno, 1]
+                geo_map[y_in_poly, x_in_poly, 8] = \
+                    1.0 / max(min(height, width), 1.0)
 
         data.update(image=image,
                     polygons=polygons,

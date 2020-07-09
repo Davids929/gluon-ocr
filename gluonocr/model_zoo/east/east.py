@@ -12,21 +12,22 @@ class EAST(nn.HybridBlock):
 
         with self.name_scope():
             self.stages = nn.HybridSequential()
-            self.ups    = nn.HybridSequential()
             self.convs  = nn.HybridSequential()
             for i in range(len(stages)):
                 self.stages.add(stages[i])
             for i in range(3):
                 self.convs.add(self._make_layers(channels[i]))
+                
             self.pred_score = nn.HybridSequential()
-            self.pred_geo   = nn.HybridSequential()
             self.pred_score.add(nn.Conv2D(channels[-1], 3, 1, 1))
-            self.pred_score.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
+            self.pred_score.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
             self.pred_score.add(nn.Activation('relu'))
             self.pred_score.add(nn.Conv2D(1, 1, 1))
             self.pred_score.add(nn.Activation('sigmoid'))
+
+            self.pred_geo   = nn.HybridSequential()
             self.pred_geo.add(nn.Conv2D(channels[-1], 3, 1, 1))
-            self.pred_geo.add(self.norm_layer(**({} if self.norm_kwargs is None else self.norm_kwargs)))
+            self.pred_geo.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
             self.pred_geo.add(nn.Activation('relu'))
             self.pred_geo.add(nn.Conv2D(8, 1, 1))
             self.pred_geo.add(nn.Activation('tanh'))
@@ -83,7 +84,7 @@ def get_east(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
             raise ValueError('The num_layers of moblienetv3 must be 24 or 32.')
         
     else:
-        raise ValueError('Please input right backbone name.')
+        raise ValueError('Input right backbone name.')
     stages = [base_net.features[:ids[0]], 
               base_net.features[ids[0]:ids[1]],
               base_net.features[ids[1]:ids[2]],

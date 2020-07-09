@@ -45,11 +45,13 @@ class Trainer(object):
         args.save_prefix += model_name
 
         self.net.hybridize()
+        if args.export_model:
+            self.export_model()
         self.init_model()
         self.net.collect_params().reset_ctx(self.ctx)
         self.loss = gluon.loss.CTCLoss()
         self.loss_metric = mx.metric.Loss('CTCLoss')
-        self.acc_metric  = RecogAccuracy(voc_size+1, ctc_mode=True)
+        self.acc_metric  = RecogAccuracy(blank=voc_size)
 
     def init_model(self):
         if args.resume.strip():
@@ -150,8 +152,9 @@ class Trainer(object):
                 with mx.autograd.record():
                     for sd, fm, tl, tm in zip(src_data, fea_mask, tag_lab, tag_mask):
                         out = self.net(sd, fm)
-                        lab_length  = mx.nd.sum(tm, axis=-1)
-                        pred_length = mx.nd.sum_axis(fm, axis=[1,2,3])
+                        with mx.autograd.pause():
+                            lab_length  = mx.nd.sum(tm, axis=-1)
+                            pred_length = mx.nd.sum_axis(fm, axis=[1,2,3])
                         loss = self.loss(out, tl, pred_length, lab_length)
                         with mx.autograd.pause():
                             ll = loss.asnumpy()
@@ -202,6 +205,17 @@ class Trainer(object):
         name, acc = self.acc_metric.get()
         self.acc_metric.reset()
         return name, acc
+
+    def export_model(self):
+        data = mx.nd.ones((1, 3, 32, 128), dtype='float32', ctx=self.ctx[0])
+        mask = mx.nd.ones((1, 1, 1, 32), dtype='float32', ctx=self.ctx[0])
+        self.net.load_parameters(args.resume.strip())
+        self.net.hybridize()
+        self.net.collect_params().reset_ctx(self.ctx)
+        pred1 = self.net(data, mask)
+        self.net.export(args.save_prefix, epoch=0)
+        print('Successfully export model!')
+        sys.exit()
 
 if __name__ == '__main__':
     trainer = Trainer()

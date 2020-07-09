@@ -6,11 +6,9 @@ from mxnet import gluon
 from editdistance import distance
 
 class RecogAccuracy(EvalMetric):
-    def __init__(self, voc_size, ctc_mode=False):
+    def __init__(self, blank=None):
         super(RecogAccuracy, self).__init__('RecogAccuracy')
-        self.ctc_mode = ctc_mode
-        if ctc_mode:
-            self.blank = voc_size-1
+        self.blank = blank
         self.eps = 1e-6
 
     def get_pred(self, preds, max_len=100):
@@ -18,16 +16,13 @@ class RecogAccuracy(EvalMetric):
         pred_list = []
         for i in range(batch_size):
             seq = -1*np.ones([max_len])
-            last_word = None
-            idx = 0
+            count = 0
             for j in range(seq_len):
-                if idx >= max_len:
+                if count >= max_len:
                     break
-                curr_word = preds[i, j]
-                if  curr_word!= last_word and curr_word!= self.blank:
-                    seq[idx]  = curr_word
-                    last_word = curr_word
-                    idx += 1
+                if preds[i,j]!= self.blank and (not (j>0 and preds[i, j-1]==preds[i, j])):
+                    seq[count] = preds[i, j]
+                    count += 1 
             pred_list.append(seq)
         return np.array(pred_list)
 
@@ -38,7 +33,7 @@ class RecogAccuracy(EvalMetric):
             preds = np.argmax(preds, axis=-1).astype('int32')
         mask  = mask.asnumpy()
         seq_len = labels.shape[-1]
-        if self.ctc_mode:
+        if self.blank != None:
             preds = self.get_pred(preds)
         acc = preds[:, :seq_len] == labels
         accuracy = np.sum(acc*mask,axis=-1)/(np.sum(mask, axis=-1)+self.eps)

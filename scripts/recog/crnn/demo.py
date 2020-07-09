@@ -18,10 +18,6 @@ parser.add_argument('--short-side', type=int, default=32,
                     help='The short side of image.')
 parser.add_argument('--voc-path', type=str, default='',
                         help='the path of vocabulary.')
-parser.add_argument('--sos', type=int, default=0,
-                    help='start symbol.')
-parser.add_argument('--eos', type=int, default=1,
-                    help='end symbol.')            
 parser.add_argument('--gpu-id', type=str, default='0')
 
 img_types = ['jpg', 'png', 'jpeg', 'bmp']
@@ -67,7 +63,7 @@ class Demo(object):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         original_shape = img.shape[:2]
         img = self.resize_image(img)
-        h, w = img.shape
+        h, w = img.shape[:2]
         img = mx.nd.array(img)
         img = mx.nd.image.to_tensor(img)
         img = mx.nd.image.normalize(img, mean=mean, std=std)
@@ -82,27 +78,47 @@ class Demo(object):
         words = []
         for i in range(n):
             if ids[i]!=blank and (not (i>0 and ids[i-1]==ids[i])):
-                words.append(self.word_list[i])
+                words.append(self.words[int(ids[i])])
         text = ''.join(words)
         return text
 
-    def inference(self, image, visualize=False):
+    def inference(self, image):
         if os.path.isdir(image):
             file_list  = os.listdir(image)
             image_list = [os.path.join(image, i) for i in file_list if i.split('.')[-1].lower() in img_types]
         else:
             image_list = [image]
+        text_list = []
         for image_path in image_list:
             data, mask = self.load_data(image_path)
             time1 = time.time()
-            outs  = self.net(data, mask)
+            pred  = self.net(data, mask)
             time2 = time.time()
-            outs  = outs.asnumpy()[0].tolist()
+            pred  = mx.nd.softmax(pred)
+            pred  = mx.nd.argmax(pred, axis=-1) 
+            outs  = pred.asnumpy()[0].tolist()
             text  = self.ctc_ids2text(outs, self.voc_size)
+            text_list.append(text)
             print(image_path, 'recog results:', text) 
-    
+        return text_list
+
+    def test(self, image):
+        with open(image, 'r', encoding='utf-8') as fi:
+            line_list = fi.readlines()
+        nums  = len(line_list)
+        count = 0
+        for line in line_list:
+            path, lab = line.strip('\n').split('\t')
+            try:
+                pred = self.inference(path)
+            except:
+                continue
+            if pred[0] == lab:
+                count += 1
+        print('accuracy:', count/nums)
+
 if __name__ == '__main__':
     args = parser.parse_args()
     
     demo = Demo(args)
-    demo.inference(args.image_path, visualize=args.visualize)
+    demo.test(args.image_path)

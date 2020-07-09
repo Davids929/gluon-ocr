@@ -10,3 +10,5 @@ from .recog_dataset import *
 from .recog_augment import *
 from .detect_dataset import *
 from .detect_augment import *
+from .clrs_dataset import *
+

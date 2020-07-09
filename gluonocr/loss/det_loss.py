@@ -56,3 +56,22 @@ class EASTLoss(Loss):
         loss = self._lambd * seg_loss + l1_loss
         metrics = dict(bce_loss=seg_loss, l1_loss=l1_loss)
         return loss, metrics
+
+class CLRSLoss(gluon.Block):
+    def __init__(self, lambd1=1.0, lambd2=10.0, negative_mining_ratio=3, rho=1.0, 
+                 min_hard_negatives=0, **kwargs):
+        super(CLRSLoss, self).__init__(**kwargs)
+        from gluoncv.loss import SSDMultiBoxLoss
+        self.det_loss = SSDMultiBoxLoss(lambd=lambd1, rho=rho,
+                                        negative_mining_ratio=negative_mining_ratio, 
+                                        min_hard_negatives=min_hard_negatives,  **kwargs)
+        self._lambd2  = lambd2
+        self.seg_loss = DiceLoss()
+
+    def forward(self, pred, batch):
+        sum_loss, cls_loss, box_loss = self.det_loss(pred['cls_pred'], pred['box_pred'], 
+                                                     batch['cls_targ'], batch['box_targ'])
+        seg_loss = self.seg_loss(pred['seg_pred'], batch['seg_gt'], batch['mask'])
+        sum_loss = sum_loss[0] + self._lambd2*seg_loss
+        metrics = dict(seg_loss=seg_loss, cls_loss=cls_loss[0], box_loss=box_loss[0])
+        return sum_loss, metrics

@@ -88,6 +88,7 @@ class Demo(object):
             image_list = [os.path.join(image, i) for i in file_list if i.split('.')[-1].lower() in img_types]
         else:
             image_list = [image]
+        image_list.sort()
         text_list = []
         for image_path in image_list:
             data, mask = self.load_data(image_path)
@@ -102,7 +103,7 @@ class Demo(object):
             print(image_path, 'recog results:', text) 
         return text_list
 
-    def test(self, image):
+    def evaluate(self, image):
         with open(image, 'r', encoding='utf-8') as fi:
             line_list = fi.readlines()
         nums  = len(line_list)
@@ -117,8 +118,21 @@ class Demo(object):
                 count += 1
         print('accuracy:', count/nums)
 
+    def test(self, img_dir, save_path):
+        file_list  = os.listdir(img_dir)
+        image_list = [i for i in file_list if i.split('.')[-1].lower() in img_types]
+        image_list.sort()
+        fi_w = open(save_path, 'w', encoding='utf-8')
+        for img in image_list:
+            path = os.path.join(img_dir, img)
+            pred = self.inference(path)
+            fi_w.write(img + '\t' + pred[0] + '\n')
+
+        fi_w.close()
+
 if __name__ == '__main__':
     args = parser.parse_args()
     
     demo = Demo(args)
-    demo.test(args.image_path)
+    save_path = '/home/idcard/data/scene_text_lines/test_results0710.txt'
+    demo.test(args.image_path, save_path)

@@ -57,6 +57,8 @@ class FixSizeDataset(Dataset):
                     label    = lst[1]
                     if not os.path.exists(img_path):
                         continue
+                    if label == '':
+                        continue
                     if label == '###' or len(label)>self.max_len - self.add_symbol:
                         continue
                     imgs_list.append(img_path)

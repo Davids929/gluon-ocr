@@ -28,13 +28,13 @@ class Augmenter(object):
         
     def get_default_seq(self):
         seqence = [iaa.LinearContrast((0.8, 1.2)),
-                   iaa.Grayscale((0, 1.0)),
+                   iaa.Grayscale((0.5, 1.0)),
                    iaa.GaussianBlur((0, 2)),
                    iaa.Multiply((0.8, 1.2)),
                    iaa.Add((-15, 15), per_channel=0.5),
                    iaa.Affine(rotate=(-5, 5)),
                    ]
-        seq = iaa.SomeOf(3, seqence, random_order=True)
+        seq = iaa.Sequential(seqence, random_order=True)
         return seq
 
 class SynthLines(object):

@@ -51,9 +51,33 @@ class CLRSDataset(DBDataset):
         if self.mode == 'train':
             data = self.random_crop(data)
         boxes, seg_gt, mask = self.gen_gt(data, self.img_size)
-        if self.debug:
-            pass
         image = self.padd_image(data['image'], self.img_size, layout='HWC')
+        if self.debug:
+            show = np.zeros(image.shape, dtype=np.uint8)
+            show[seg_gt[0]==1, :] = [255, 255, 255]
+            show[seg_gt[1]==1, :] = [255, 0, 0]
+            show[seg_gt[2]==1, :] = [0, 255, 0]
+            show[seg_gt[3]==1, :] = [0, 0, 255]
+            for i,box in enumerate(boxes):
+                if box[4] == 0:
+                    cv2.rectangle(image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (255, 255, 255), 2)
+                elif box[4] == 1:
+                    cv2.rectangle(image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (255, 0, 0), 2)
+                elif box[4] == 2:
+                    cv2.rectangle(image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 255, 0), 2)
+                else:
+                    cv2.rectangle(image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 0, 255), 2)
+                if (i+1)%4==0 and box[0]>-1:
+                    tl = [(boxes[i-3][0] + boxes[i-3][2])/2, (boxes[i-3][1] + boxes[i-3][3])/2]
+                    tr = [(boxes[i-2][0] + boxes[i-2][2])/2, (boxes[i-2][1] + boxes[i-2][3])/2]
+                    br = [(boxes[i-1][0] + boxes[i-1][2])/2, (boxes[i-1][1] + boxes[i-1][3])/2]
+                    bl = [(boxes[i][0] + boxes[i][2])/2, (boxes[i][1] + boxes[i][3])/2]
+                    contour = np.array([tl, tr, br, bl], dtype=np.int32)
+                    cv2.drawContours(image, [contour], -1, (255, 255, 0), 2)
+            show = np.concatenate([image, show], axis=1).astype(np.uint8)
+            show = cv2.cvtColor(show, cv2.COLOR_RGB2BGR)
+            cv2.imwrite('clrs_label.jpg', show)
+
         image = mx.nd.array(image, dtype='float32')
         image = normalize_fn(image)
         seg_gt = mx.nd.array(seg_gt, dtype='float32')
@@ -113,7 +137,7 @@ class CLRSDataset(DBDataset):
             if h < self.min_text_size or ignore_tags[i]:
                 cv2.fillPoly(mask, polygons[i].astype(np.int32)[np.newaxis, :, :], 0)
                 continue
-            theta = math.atan2(y2 - y1, x2 - x1)
+            #theta = math.atan2(y2 - y1, x2 - x1)
             boxes.append(np.array([x1 - h/2, y1 - h/2, x1 + h/2, y1 + h/2, 0]))
             boxes.append(np.array([x2 - h/2, y2 - h/2, x2 + h/2, y2 + h/2, 1]))
             boxes.append(np.array([x3 - h/2, y3 - h/2, x3 + h/2, y3 + h/2, 2]))
@@ -126,14 +150,14 @@ class CLRSDataset(DBDataset):
             cv2.fillPoly(tl_mask, poly[np.newaxis, :, :], 1)
             poly = np.array([[c1_x,c1_y], [x2,y2], [c2_x, c2_y], [c_x,c_y]], dtype=np.int32)
             cv2.fillPoly(tr_mask, poly[np.newaxis, :, :], 1)
-            poly = np.array([[c_x,c_y], [c2_x,c2_y], [c_x,c_y], [c3_x,c3_y]], dtype=np.int32)
+            poly = np.array([[c_x,c_y], [c2_x,c2_y], [x3,y3], [c3_x,c3_y]], dtype=np.int32)
             cv2.fillPoly(br_mask, poly[np.newaxis, :, :], 1)
             poly = np.array([[c4_x,c4_y], [c_x,c_y], [c3_x,c3_y], [x4,y4]], dtype=np.int32)
             cv2.fillPoly(bl_mask, poly[np.newaxis, :, :], 1)
 
         seg_gt = np.stack([tl_mask, tr_mask, br_mask, bl_mask], axis=0)
         if boxes == []:
-            boxes = [[-1, -1, -1, -1, -1]]
+            boxes = [[-1, -1, -1, -1, -1]]*4
         boxes  = np.array(boxes)
         return boxes, seg_gt, mask
 

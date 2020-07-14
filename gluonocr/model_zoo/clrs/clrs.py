@@ -141,7 +141,7 @@ class CLRS(nn.HybridBlock):
                 asz = max(asz // 2, 16)
             self.seg_pred = SegPred(sm_channels)
             self.bbox_decoder = NormalizedBoxCenterDecoder(stds)
-            self.cls_decoder = MultiPerClassDecoder(5, thresh=0.01)
+            self.cls_decoder = MultiPerClassDecoder(4+1, thresh=0.01)
 
     def _extra_layer(self, in_channels, out_channels, strides=2, 
                     norm_layer=nn.BatchNorm, norm_kwargs=None):

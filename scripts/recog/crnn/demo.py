@@ -64,6 +64,8 @@ class Demo(object):
         original_shape = img.shape[:2]
         img = self.resize_image(img)
         h, w = img.shape[:2]
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+        img = np.stack([img, img, img], axis=-1)
         img = mx.nd.array(img)
         img = mx.nd.image.to_tensor(img)
         img = mx.nd.image.normalize(img, mean=mean, std=std)
@@ -134,5 +136,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     demo = Demo(args)
-    save_path = '/home/idcard/data/scene_text_lines/test_results0710.txt'
+    save_path = '/home/idcard/data/scene_text_lines/test_results0713.txt'
     demo.test(args.image_path, save_path)

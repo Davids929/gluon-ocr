@@ -30,7 +30,7 @@ class EAST(nn.HybridBlock):
             self.pred_geo.add(norm_layer(**({} if norm_kwargs is None else norm_kwargs)))
             self.pred_geo.add(nn.Activation('relu'))
             self.pred_geo.add(nn.Conv2D(8, 1, 1))
-            self.pred_geo.add(nn.Activation('tanh'))
+            self.pred_geo.add(nn.Activation('sigmoid'))
 
     def _make_layers(self, channel, ksize=3, stride=1, padding=1, act_type='relu'):
         layer = nn.HybridSequential()
@@ -50,12 +50,11 @@ class EAST(nn.HybridBlock):
         feats = feats[::-1]
         h = feats[0]
         for i in range(3):
-            h = F.contrib.BilinearResize2D(h, like=feats[i+1], mode='like')
+            h = F.UpSampling(feats[i], scale=2, sample_type='nearest')
             h = F.concat(h, feats[i+1], dim=1)
             h = self.convs[i](h)
-
         scores = self.pred_score(h)
-        geometrys = self.pred_geo(h) * 800
+        geometrys = (self.pred_geo(h) - 0.5) * 2 * 800
         return scores, geometrys
 
 def get_east(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),

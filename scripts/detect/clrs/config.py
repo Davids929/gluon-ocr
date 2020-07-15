@@ -74,10 +74,10 @@ def parse_args():
                          ['Affine', {'rotate':[-10, 10]}],
                          ['Resize', {'size':[1.0, 2.0]}],
                          ]
-    args.train_img_dir = '/home/idcard/data/mtwi_2018/image_train'
-    args.train_lab_dir = '/home/idcard/data/mtwi_2018/txt_train'
-    args.val_img_dir   = '/home/idcard/data/mtwi_2018/image_1000'
-    args.val_lab_dir   = '/home/idcard/data/mtwi_2018/txt_1000'
+    # args.train_img_dir = '/home/idcard/data/mtwi_2018/image_train'
+    # args.train_lab_dir = '/home/idcard/data/mtwi_2018/txt_train'
+    # args.val_img_dir   = '/home/idcard/data/mtwi_2018/image_1000'
+    # args.val_lab_dir   = '/home/idcard/data/mtwi_2018/txt_1000'
     return args
 
 args = parse_args()

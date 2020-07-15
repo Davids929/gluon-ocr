@@ -6,15 +6,17 @@ import sys
 import logging
 import warnings
 import time
+import numpy as np
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon.data import DataLoader
-from gluoncv import utils as gutils 
+from gluoncv import utils as gutils
+from gluoncv.data.batchify import Tuple, Stack, Pad 
 from gluoncv.utils.metrics.voc_detection import VOC07MApMetric
 
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
 from gluonocr.model_zoo import get_clrs
-from gluonocr.data import CLRSDataset, TargetGenerator
+from gluonocr.data import CLRSDataset, CLRSTrainTransform
 from gluonocr.data import PointAugmenter
 from gluonocr.loss import CLRSLoss
 from config import args
@@ -66,19 +68,23 @@ class Trainer(object):
             inp = mx.nd.zeros((1, 3, args.data_shape, args.data_shape), self.ctx[0])
             _, _, anchors, _ = self.net(inp)
         anchors = anchors.as_in_context(mx.cpu())
-        tg_fn   = TargetGenerator(anchors)
+        tg_fn   = CLRSTrainTransform(anchors, negative_mining_ratio=-1)
         train_dataset = CLRSDataset(args.train_img_dir, 
                                     args.train_lab_dir,
-                                    augment, mode='train',
+                                    augment, mode='train', debug=True,
                                     img_size=(args.data_shape, args.data_shape))
         val_dataset  = CLRSDataset(args.train_img_dir, 
                                     args.train_lab_dir, mode='val',
                                     img_size=(args.data_shape, args.data_shape))
         val_metric = VOC07MApMetric(iou_thresh=0.5, class_names=val_dataset.classes)
+        if args.num_samples < 0:
+            args.num_samples = len(train_dataset)
         train_dataloader = DataLoader(train_dataset.transform(tg_fn), batch_size=args.batch_size, 
                                       last_batch='discard', shuffle=True, 
                                       num_workers=args.num_workers, pin_memory=False)
-        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, 
+        val_batchify_fn = Tuple(Stack(), Pad(pad_val=-1), Stack(), Stack())
+        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size,
+                                    batchify_fn=val_batchify_fn,  
                                     num_workers=args.num_workers, last_batch='keep')
         return train_dataloader, val_dataloader, val_metric
 
@@ -109,8 +115,8 @@ class Trainer(object):
                         step_factor=args.lr_decay, power=2),
             ])
 
-        trainer = gluon.Trainer(self.net.collect_params(), 'adam',
-            {'wd': args.wd, 'lr_scheduler': lr_scheduler}) #'momentum': args.momentum, 
+        trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
+            {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler}) #
 
         # set up logger
         logging.basicConfig()
@@ -129,7 +135,7 @@ class Trainer(object):
         for epoch in range(args.start_epoch, args.epochs):
             tic = time.time()
             btic = time.time()
-            #self.net.hybridize()
+            self.net.hybridize()
             for i, batch in enumerate(self.train_dataloader):
                 data     = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
                 cls_targ = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
@@ -154,6 +160,10 @@ class Trainer(object):
                 self.cls_loss.update(0, cls_losses)
                 self.box_loss.update(0, box_losses)
                 self.seg_loss.update(0, seg_losses)
+                # name2, loss2 = self.box_loss.get()
+                # if np.isnan(loss2):
+                #     import pdb
+                #     pdb.set_trace()
                 if args.log_interval and not (i + 1) % args.log_interval:
                     name0, loss0 = self.sum_loss.get()
                     name1, loss1 = self.cls_loss.get()
@@ -172,8 +182,8 @@ class Trainer(object):
             if not (epoch + 1) % args.val_interval:
                 # consider reduce the frequency of validation to save time
                 mean_ap, seg_loss = self.validate(epoch, logger)
-                if mean_ap > best_map and seg_loss < best_loss:
-                    best_map, best_loss = mean_ap, seg_loss
+                if mean_ap[-1] > best_map and seg_loss < best_loss:
+                    best_map, best_loss = mean_ap[-1], seg_loss
                     self.net.save_parameters('{:s}_best.params'.format(args.save_prefix))
                 if args.save_interval and (epoch+1) % args.save_interval == 0:
                     self.net.save_parameters('{:s}_{:04d}_{:.3f}.params'.format(args.save_prefix, epoch+1, best_map))

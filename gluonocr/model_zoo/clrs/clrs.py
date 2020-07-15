@@ -205,14 +205,10 @@ class CLRS(nn.HybridBlock):
             box_preds.append(F.flatten(F.transpose(pred[1], (0, 2, 3, 1))))
         cls_preds = F.concat(*cls_preds, dim=1).reshape((0, -1, 5))
         box_preds = F.concat(*box_preds, dim=1).reshape((0, -1, 4))
-        # anchors   = [F.reshape(ag(feat), shape=(1, -1))
-        #            for feat, ag in zip(feats, self.anchor_generators)]
-        anchors = []
-        for feat, ag in zip(feats, self.anchor_generators):
-            anchor = ag(feat)
-            anchor = F.reshape(anchor, shape=(1, -1))
-            anchors.append(anchor)
+        anchors   = [F.reshape(ag(feat), shape=(1, -1))
+                   for feat, ag in zip(feats, self.anchor_generators)]
         anchors = F.concat(*anchors, dim=1).reshape((1, -1, 4))
+        
         seg_maps = self.seg_pred(F9, F8, F7, F4, F3)
         if mx.autograd.is_training():
             return [cls_preds, box_preds, anchors, seg_maps]

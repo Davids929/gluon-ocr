@@ -25,7 +25,7 @@ class CLRSDataset(DBDataset):
         self.min_text_size = min_text_size
         self.imgs_type   = ['jpg', 'jpeg', 'png', 'bmp']
         self.imgs_list, self.labs_list = self._get_items(img_dir, lab_dir)
-        self.random_crop = RandomCropData(size=img_size)
+        self.random_crop = RandomCropData(size=img_size, max_tries=5)
 
     @property
     def classes(self):
@@ -37,7 +37,6 @@ class CLRSDataset(DBDataset):
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)
-        
         img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
         polygons, ignore_tags = self._load_ann(lab_path)
 
@@ -51,6 +50,8 @@ class CLRSDataset(DBDataset):
         if self.mode == 'train':
             data = self.random_crop(data)
         boxes, seg_gt, mask = self.gen_gt(data, self.img_size)
+        if len(boxes)<4:
+            return self.__getitem__(idx-1)
         image = self.padd_image(data['image'], self.img_size, layout='HWC')
         if self.debug:
             show = np.zeros(image.shape, dtype=np.uint8)
@@ -74,12 +75,14 @@ class CLRSDataset(DBDataset):
                     bl = [(boxes[i][0] + boxes[i][2])/2, (boxes[i][1] + boxes[i][3])/2]
                     contour = np.array([tl, tr, br, bl], dtype=np.int32)
                     cv2.drawContours(image, [contour], -1, (255, 255, 0), 2)
-            show = np.concatenate([image, show], axis=1).astype(np.uint8)
+            seg_mask = np.stack([mask, mask, mask], axis=-1)*255
+            show = np.concatenate([image, show, seg_mask], axis=1).astype(np.uint8)
             show = cv2.cvtColor(show, cv2.COLOR_RGB2BGR)
             cv2.imwrite('clrs_label.jpg', show)
-
+            
         image = mx.nd.array(image, dtype='float32')
         image = normalize_fn(image)
+        boxes = mx.nd.array(boxes, dtype='float32')
         seg_gt = mx.nd.array(seg_gt, dtype='float32')
         mask   = mx.nd.array(mask, dtype='float32').expand_dims(axis=0)
         return image, boxes, seg_gt, mask
@@ -115,7 +118,7 @@ class CLRSDataset(DBDataset):
         return [px1, py1, px2, py2, px3, py3, px4, py4]
 
     def gen_gt(self, data, img_size=(512, 512)):
-        polygons = data['polygons']
+        polygons    = data['polygons']
         ignore_tags = data['ignore_tags']
         boxes   = []
         tl_mask = np.zeros(img_size, dtype=np.uint8)
@@ -123,7 +126,7 @@ class CLRSDataset(DBDataset):
         br_mask = np.zeros(img_size, dtype=np.uint8)
         bl_mask = np.zeros(img_size, dtype=np.uint8)
         mask    = np.ones(img_size, dtype=np.uint8)
-        for i in range(polygons.shape[0]):
+        for i in range(len(polygons)):
             polygon = polygons[i]
             polygon[:, 0] = np.clip(polygon[:, 0], 0, img_size[1])
             polygon[:, 1] = np.clip(polygon[:, 1], 0, img_size[0])
@@ -157,19 +160,23 @@ class CLRSDataset(DBDataset):
 
         seg_gt = np.stack([tl_mask, tr_mask, br_mask, bl_mask], axis=0)
         if boxes == []:
-            boxes = [[-1, -1, -1, -1, -1]]*4
-        boxes  = np.array(boxes)
+            boxes = [[-1, -1, -1, -1, -1]]
+        else:
+            boxes  = np.array(boxes, dtype=np.float32)
+            if np.isinf(boxes).sum() > 0:
+                print('label has inf.')
         return boxes, seg_gt, mask
 
-class TargetGenerator(object):
+class CLRSTrainTransform(object):
     def __init__(self, anchors, iou_thresh=0.5, box_norm=(0.1, 0.1, 0.2, 0.2), **kwargs):
         self._anchors = anchors
         self._target_generator = SSDTargetGenerator(
                     iou_thresh=iou_thresh, stds=box_norm, **kwargs)
 
     def __call__(self, img, label, seg_gt, mask):
-        gt_bboxes = mx.nd.array(label[np.newaxis, :, :4])
-        gt_ids = mx.nd.array(label[np.newaxis, :, 4:5])
+        label = label.expand_dims(0)
+        gt_bboxes = label[:, :, :4]
+        gt_ids = label[:, :, 4:5]
         cls_targets, box_targets, _ = self._target_generator(
             self._anchors, None, gt_bboxes, gt_ids)
         return img, cls_targets[0], box_targets[0], seg_gt, mask

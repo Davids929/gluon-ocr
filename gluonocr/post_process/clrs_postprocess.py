@@ -15,10 +15,10 @@ class CLRSPostProcess(object):
         self.box_thresh = box_thresh
 
     def corner2center(self, boxes):
-        cx = (boxes[0], boxes[2])/2
-        cy = (boxes[1], boxes[3])/2
-        w  = boxes[2] - boxes[0]
-        h  = boxes[3] - boxes[1]
+        cx = (boxes[:, 0] + boxes[:, 2])/2
+        cy = (boxes[:, 1] + boxes[:, 3])/2
+        w  = boxes[:, 2] - boxes[:, 0]
+        h  = boxes[:, 3] - boxes[:, 1]
         return np.stack([cx, cy, w, h], axis=-1)
 
     def get_scores(self, boxes, seg_maps):
@@ -104,14 +104,16 @@ class CLRSPostProcess(object):
                         random_box.append(box)
         return random_box
 
-    def get_boxes(self, ids, boxes, seg_maps, dest_width, dest_height):
+    def get_boxes(self, ids, boxes, seg_maps, dest_height, dest_width):
         height, width = seg_maps.shape[1:3]
         boxes = self.corner2center(boxes)
-        tls = boxes[ids==0, :]
-        trs = boxes[ids==1, :]
-        brs = boxes[ids==2, :]
-        bls = boxes[ids==3, :]
-
+        
+        tls = boxes[ids[:, 0]==0, :]
+        trs = boxes[ids[:, 0]==1, :]
+        brs = boxes[ids[:, 0]==2, :]
+        bls = boxes[ids[:, 0]==3, :]
+        if len(tls) == 0 or len(trs) == 0 or len(brs) == 0 or len(bls) == 0:
+            return []
         random_box, candidate_box = [], []
         # top_line
         box_list = self.gen_box(tls, trs, 0)

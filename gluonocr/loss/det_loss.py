@@ -2,6 +2,7 @@
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon.loss import Loss
+from gluoncv.loss import SSDMultiBoxLoss
 from .base_loss import *
 
 class DBLoss(Loss):
@@ -58,13 +59,13 @@ class EASTLoss(Loss):
         return loss, metrics
 
 class CLRSLoss(gluon.Block):
-    def __init__(self, lambd1=1.0, lambd2=10.0, negative_mining_ratio=3, rho=1.0, 
+    def __init__(self, lambd1=1.0, lambd2=1.0, negative_mining_ratio=3, rho=1.0, 
                  min_hard_negatives=0, **kwargs):
         super(CLRSLoss, self).__init__(**kwargs)
-        from gluoncv.loss import SSDMultiBoxLoss
+        
         self.det_loss = SSDMultiBoxLoss(lambd=lambd1, rho=rho,
                                         negative_mining_ratio=negative_mining_ratio, 
-                                        min_hard_negatives=min_hard_negatives,  **kwargs)
+                                        min_hard_negatives=min_hard_negatives)
         self._lambd2  = lambd2
         self.seg_loss = DiceLoss()
 
@@ -73,5 +74,5 @@ class CLRSLoss(gluon.Block):
                                                      batch['cls_targ'], batch['box_targ'])
         seg_loss = self.seg_loss(pred['seg_pred'], batch['seg_gt'], batch['mask'])
         sum_loss = sum_loss[0] + self._lambd2*seg_loss
-        metrics = dict(seg_loss=seg_loss, cls_loss=cls_loss[0], box_loss=box_loss[0])
+        metrics  = dict(seg_loss=seg_loss, cls_loss=cls_loss[0], box_loss=box_loss[0])
         return sum_loss, metrics

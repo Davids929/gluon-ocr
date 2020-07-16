@@ -71,10 +71,11 @@ class Trainer(object):
         tg_fn   = CLRSTrainTransform(anchors, negative_mining_ratio=-1)
         train_dataset = CLRSDataset(args.train_img_dir, 
                                     args.train_lab_dir,
-                                    augment, mode='train', debug=True,
+                                    augment, mode='train', 
                                     img_size=(args.data_shape, args.data_shape))
         val_dataset  = CLRSDataset(args.train_img_dir, 
-                                    args.train_lab_dir, mode='val',
+                                    args.train_lab_dir, 
+                                    mode='val',
                                     img_size=(args.data_shape, args.data_shape))
         val_metric = VOC07MApMetric(iou_thresh=0.5, class_names=val_dataset.classes)
         if args.num_samples < 0:
@@ -91,6 +92,7 @@ class Trainer(object):
     def export_model(self):
         data = mx.nd.ones((1, 3, 512, 512), dtype='float32', ctx=self.ctx[0])
         self.net.load_parameters(args.resume.strip())
+        self.net.set_nms(0.45, 1000, 400)
         self.net.hybridize()
         self.net.collect_params().reset_ctx(self.ctx)
         pred1 = self.net(data)
@@ -155,15 +157,12 @@ class Trainer(object):
                         seg_losses.append(metrics['seg_loss'])
                     mx.autograd.backward(sum_losses)
                 trainer.step(1)
-                #mx.nd.waitall()
+                
                 self.sum_loss.update(0, sum_losses)
                 self.cls_loss.update(0, cls_losses)
                 self.box_loss.update(0, box_losses)
                 self.seg_loss.update(0, seg_losses)
-                # name2, loss2 = self.box_loss.get()
-                # if np.isnan(loss2):
-                #     import pdb
-                #     pdb.set_trace()
+                
                 if args.log_interval and not (i + 1) % args.log_interval:
                     name0, loss0 = self.sum_loss.get()
                     name1, loss1 = self.cls_loss.get()
@@ -179,6 +178,7 @@ class Trainer(object):
             logger.info('[Epoch {}] Training cost: {:.3f}, {}={:.3f}, {}={:.3f}, {}={:.3f}, {}={:.3f}'.format(
                         epoch, time.time()-tic, name0, loss0, name1, loss1, name2, loss2, name3, loss3))
 
+            
             if not (epoch + 1) % args.val_interval:
                 # consider reduce the frequency of validation to save time
                 mean_ap, seg_loss = self.validate(epoch, logger)
@@ -195,7 +195,7 @@ class Trainer(object):
         self.val_metric.reset()
         self.seg_loss.reset()
         # set nms threshold and topk constraint
-        self.net.set_nms(nms_thresh=0.45, nms_topk=1000)
+        self.net.set_nms(nms_thresh=0.45, nms_topk=1000, post_nms=400)
         self.net.hybridize()
         tic = time.time()
         for batch in self.val_dataloader:
@@ -221,9 +221,10 @@ class Trainer(object):
                 gt_difficults.append(y.slice_axis(axis=-1, begin=5, end=6) if y.shape[-1] > 5 else None)
                 loss = self.loss.seg_loss(seg_maps, seg, m)
                 self.seg_loss.update(0, loss)
-            
+                #self.visualize(ids, scores, bboxes, seg_maps)
             # update metric
             self.val_metric.update(det_bboxes, det_ids, det_scores, gt_bboxes, gt_ids, gt_difficults)
+            
         name3, loss3 = self.seg_loss.get()
         map_name, mean_ap = self.val_metric.get()
         val_msg = '\n'.join(['{}={}'.format(k, v) for k, v in zip(map_name, mean_ap)])
@@ -231,6 +232,33 @@ class Trainer(object):
         logger.info('{}={:.3f}'.format(name3, loss3))
         self.seg_loss.reset()
         return mean_ap, loss3
+    
+    def visualize(self, ids, scores, boxes, seg_maps):
+        boxes = boxes.asnumpy()[0]
+        seg_maps = seg_maps.asnumpy()[0]
+        ids      = ids.asnumpy()[0, :, 0]
+        scores   = scores.asnumpy()[0, :, 0]
+        _, h, w  = seg_maps.shape
+        bina_map = np.zeros((h, w, 3), dtype=np.uint8)
+        bina_map[seg_maps[0]>0.6, :] = [255, 255, 255]
+        bina_map[seg_maps[1]>0.6, :] = [255, 0, 0]
+        bina_map[seg_maps[2]>0.6, :] = [0, 255, 0]
+        bina_map[seg_maps[3]>0.6, :] = [0, 0, 255]
+        
+        for i, s, box in zip(ids, scores, boxes):
+            if i < 0 or s< 0.3:
+                continue
+            box = np.array(box).astype(np.int32)
+            if i == 0:
+                cv2.rectangle(bina_map, (box[0], box[1]), (box[2], box[3]), (255, 255, 255), 2)
+            elif i == 1:
+                cv2.rectangle(bina_map, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
+            elif i == 2:
+                cv2.rectangle(bina_map, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
+            else:
+                cv2.rectangle(bina_map, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 2)
+        cv2.imwrite('pred_res.jpg', bina_map)
+
 
 if __name__ == '__main__':
     trainer = Trainer()

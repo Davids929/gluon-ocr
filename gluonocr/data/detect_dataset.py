@@ -218,7 +218,6 @@ class CLRSDataset(DBDataset):
             return self.__getitem__(idx-1)
         img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
         polygons, ignore_tags = self._load_ann(lab_path)
-
         if len(polygons) == 0:
             return self.__getitem__(idx-1)
         if self.augment_fns is not None:
@@ -357,6 +356,6 @@ class CLRSTrainTransform(object):
         label = label.expand_dims(0)
         gt_bboxes = label[:, :, :4]
         gt_ids = label[:, :, 4:5]
-        cls_targets, box_targets, _ = self._target_generator(
+        cls_targets, box_targets, box_mask = self._target_generator(
             self._anchors, None, gt_bboxes, gt_ids)
-        return img, cls_targets[0], box_targets[0], seg_gt, mask
+        return img, cls_targets[0], box_targets[0], box_mask, seg_gt, mask

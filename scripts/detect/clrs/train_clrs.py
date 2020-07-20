@@ -142,14 +142,15 @@ class Trainer(object):
                 data     = gluon.utils.split_and_load(batch[0], ctx_list=self.ctx)
                 cls_targ = gluon.utils.split_and_load(batch[1], ctx_list=self.ctx)
                 box_targ = gluon.utils.split_and_load(batch[2], ctx_list=self.ctx)
-                seg_gt   = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
-                mask     = gluon.utils.split_and_load(batch[4], ctx_list=self.ctx)
+                box_mask = gluon.utils.split_and_load(batch[3], ctx_list=self.ctx)
+                seg_gt   = gluon.utils.split_and_load(batch[4], ctx_list=self.ctx)
+                mask     = gluon.utils.split_and_load(batch[5], ctx_list=self.ctx)
                 sum_losses, cls_losses, box_losses, seg_losses = [], [], [], []
                 with mx.autograd.record():
-                    for d, ct, bt, sg, m in zip(data, cls_targ, box_targ, seg_gt, mask):
+                    for d, ct, bt, bm, sg, m in zip(data, cls_targ, box_targ, box_mask, seg_gt, mask):                       
                         cls_pred, box_pred, _, seg_pred = self.net(d)
                         pred = {'cls_pred':cls_pred, 'box_pred':box_pred, 'seg_pred':seg_pred}
-                        lab  = {'cls_targ':ct, 'box_targ':bt, 'seg_gt':sg, 'mask':m}
+                        lab  = {'cls_targ':ct, 'box_targ':bt, 'box_mask':bm, 'seg_gt':sg, 'mask':m}
                         loss, metrics = self.loss(pred, lab)
                         sum_losses.append(loss)
                         cls_losses.append(metrics['cls_loss'])
@@ -157,7 +158,6 @@ class Trainer(object):
                         seg_losses.append(metrics['seg_loss'])
                     mx.autograd.backward(sum_losses)
                 trainer.step(1)
-                
                 self.sum_loss.update(0, sum_losses)
                 self.cls_loss.update(0, cls_losses)
                 self.box_loss.update(0, box_losses)

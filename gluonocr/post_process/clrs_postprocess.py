@@ -22,8 +22,11 @@ class CLRSPostProcess(object):
         return np.stack([cx, cy, w, h], axis=-1)
 
     def get_scores(self, boxes, seg_maps):
-        mask = np.zeros(seg_maps.shape, dtype=np.float32)
-        boxes = np.array(boxes, dtype=np.float32)
+        c, h, w = seg_maps.shape
+        mask = np.zeros((c, h, w), dtype=np.float32)
+        boxes = np.array(boxes, dtype=np.int32)
+        boxes[:, ::2]  = np.clip(boxes[:, ::2], 0, w)
+        boxes[:, 1::2] = np.clip(boxes[:, 1::2], 0, h)
         scores = []
         c1_x, c1_y = (boxes[:, 0] + boxes[:, 2])/2.0, (boxes[:, 1] + boxes[:, 3])/2.0
         c2_x, c2_y = (boxes[:, 2] + boxes[:, 4])/2.0, (boxes[:, 3] + boxes[:, 5])/2.0
@@ -31,11 +34,18 @@ class CLRSPostProcess(object):
         c4_x, c4_y = (boxes[:, 6] + boxes[:, 0])/2.0, (boxes[:, 7] + boxes[:, 1])/2.0
         c_x = (boxes[:, 0] + boxes[:, 2] + boxes[:, 4] + boxes[:, 6])/4.0
         c_y = (boxes[:, 1] + boxes[:, 3] + boxes[:, 5] + boxes[:, 7])/4.0
+        min_x = np.min(boxes[:, ::2], axis=-1)
+        max_x = np.max(boxes[:, ::2], axis=-1)
+        min_y = np.min(boxes[:, 1::2], axis=-1)
+        max_y = np.max(boxes[:, 1::2], axis=-1)
         for i,box in enumerate(boxes):
-            minx, miny = int(min(box[0], box[6])), int(min(box[1], box[3]))
-            maxx, maxy = int(max(box[2], box[4])), int(max(box[5], box[7]))
+            minx, miny, maxx, maxy = min_x[i], min_y[i], max_x[i], max_y[i]
+    
+            if maxx - minx < 4 or maxy- miny < 4:
+                scores.append(0)
+                continue
             offset = np.array([[minx, miny]], dtype=np.int32)
-            mask = np.zeros((4), dtype=np.float32)
+            mask = np.zeros((4, maxy-miny, maxx-minx), dtype=np.float32)
             tl = np.array([[box[0], box[1]], [c1_x[i], c1_y[i]], [c_x[i], c_y[i]], [c4_x[i], c4_y[i]]], dtype=np.int32) - offset
             cv2.fillPoly(mask[0], tl[np.newaxis, :, :], 1)
             tl = np.array([[c1_x[i], c1_y[i]], [box[2], box[3]], [c2_x[i], c2_y[i]], [c_x[i], c_y[i]]], dtype=np.int32) - offset
@@ -46,7 +56,7 @@ class CLRSPostProcess(object):
             cv2.fillPoly(mask[3], tl[np.newaxis, :, :], 1)
             score = 0
             for j in range(4):
-                score += (mask[j]*seg_maps[i, miny:maxy, minx:maxx]).sum()/(mask[j].sum())
+                score += (mask[j]*seg_maps[j, miny:maxy, minx:maxx]).sum()/(mask[j].sum())
             score = score/4.0
             scores.append(score)
         return scores
@@ -104,7 +114,7 @@ class CLRSPostProcess(object):
                         random_box.append(box)
         return random_box
 
-    def get_boxes(self, ids, boxes, seg_maps, dest_height, dest_width):
+    def get_boxes(self, ids, boxes, seg_maps, ratio):
         height, width = seg_maps.shape[1:3]
         boxes = self.corner2center(boxes)
         
@@ -139,8 +149,8 @@ class CLRSPostProcess(object):
         boxes = standard_nms(candidate_box, self.box_thresh)
         boxes = np.reshape(boxes[:, :8], (-1, 4, 2))
         boxes[:, :, 0] = np.clip(
-                np.round(boxes[:, :, 0] / width * dest_width), 0, dest_width)
+                np.round(boxes[:, :, 0] * ratio), 0, width*ratio)
         boxes[:, :, 1] = np.clip(
-                np.round(boxes[:, :, 1] / height * dest_height), 0, dest_height)
+                np.round(boxes[:, :, 1] * ratio), 0, height*ratio)
         return boxes
 

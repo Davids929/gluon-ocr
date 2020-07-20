@@ -17,15 +17,26 @@ class DiceLoss(Loss):
         return loss
 
 class MaskL1Loss(Loss):
-    def __init__(self, weight=1., batch_axis=0, **kwargs):
+    def __init__(self, eps=1e-6, weight=1., batch_axis=0, **kwargs):
         super(MaskL1Loss, self).__init__(weight, batch_axis, **kwargs)
-    
+        self._eps = eps
+
     def hybrid_forward(self, F, pred, label, mask):
         mask_sum = F.sum(mask)
         loss = F.abs(label - pred)*mask
         loss = _apply_weighting(F, loss, self._weight)
         loss = F.sum(loss, axis=self._batch_axis, exclude=True)
-        return loss/(mask_sum+1)
+        return loss/(mask_sum+self._eps)
+
+class MaskSmoothL1Loss(Loss):
+    def __init__(self, eps=1e-6, weight=1., batch_axis=0, **kwargs):
+        super(MaskSmoothL1Loss, self).__init__(weight, batch_axis, **kwargs)
+        self._eps = eps
+        
+    def hybrid_forward(self, F, pred, label, mask):
+        loss = F.smooth_l1((pred - label) * mask, scalar=1.0)
+        loss = F.sum(loss, axis=self._batch_axis, exclude=True)/(F.sum(mask)+self._eps)
+        return loss
 
 class BalanceL1Loss(Loss):
     def __init__(self, negative_ratio=3.0, eps=1e-6, weight=1., batch_axis=0, **kwargs):

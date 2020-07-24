@@ -34,7 +34,7 @@ class Augmenter(object):
                    iaa.Add((-15, 15), per_channel=0.5),
                    iaa.Affine(rotate=(-5, 5)),
                    ]
-        seq = iaa.Sequential(seqence, random_order=True)
+        seq = iaa.SomeOf(4, seqence, random_order=True)
         return seq
 
 class SynthLines(object):

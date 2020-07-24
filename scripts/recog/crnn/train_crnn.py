@@ -95,10 +95,10 @@ class Trainer(object):
         shuffle    = None if args.bucket_mode else True 
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, 
                                       batch_sampler=train_sampler, pin_memory=True,
-                                      num_workers=args.num_workers)
+                                      num_workers=args.num_workers, last_batch='discard')
         val_dataloader = DataLoader(val_dataset, batch_size=batch_size, 
                                     batch_sampler=val_sampler, pin_memory=True,
-                                    num_workers=args.num_workers)
+                                    num_workers=args.num_workers, last_batch='keep')
         return train_dataloader, val_dataloader
 
 

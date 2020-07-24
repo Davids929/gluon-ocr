@@ -45,14 +45,14 @@ class EASTLoss(Loss):
         seg_loss   = self.seg_loss(pred_score, lab_score, lab_mask)
         norm_weight = lab_geo.slice_axis(axis=1, begin=8, end=None)
         lab_geo   = lab_geo.slice_axis(axis=1, begin=0, end=8)
-        lab_score = mx.nd.repeat(lab_score, repeats=8, axis=1)
         
         mask      = lab_mask * lab_score
         l1_loss   = mx.nd.abs(lab_geo - pred_geo)
         l1_loss   = mx.nd.where(l1_loss > self._rho, l1_loss - 0.5*self._rho, 
                                 (0.5 / self._rho) * mx.nd.square(l1_loss))
         l1_loss  = norm_weight * mx.nd.mean(l1_loss, axis=1, keepdims=True) * mask
-        l1_loss  = mx.nd.sum(l1_loss, axis=self._batch_axis, exclude=True) / (mx.nd.sum(mask)+self._eps)
+        l1_loss  = mx.nd.sum(l1_loss, axis=self._batch_axis, exclude=True) / \
+                    (mx.nd.sum(mask, axis=self._batch_axis, exclude=True)+self._eps)
 
         loss = self._lambd * seg_loss + l1_loss
         metrics = dict(bce_loss=seg_loss, l1_loss=l1_loss)
@@ -73,8 +73,7 @@ class CLRSLoss(gluon.Block):
     def forward(self, pred, batch):
         sum_loss, cls_loss, box_loss = self.det_loss(pred['cls_pred'], pred['box_pred'], 
                                                      batch['cls_targ'], batch['box_targ'])
-        
         seg_loss = self.seg_loss(pred['seg_pred'], batch['seg_gt'], batch['mask'])
         sum_loss = cls_loss[0] + self._lambd1*box_loss[0] + self._lambd2*seg_loss
-        metrics  = dict(seg_loss=seg_loss, cls_loss=cls_loss, box_loss=box_loss)
+        metrics  = dict(seg_loss=seg_loss, cls_loss=cls_loss[0], box_loss=box_loss[0])
         return sum_loss, metrics

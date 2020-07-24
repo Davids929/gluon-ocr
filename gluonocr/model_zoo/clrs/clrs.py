@@ -108,7 +108,7 @@ class CLRS(nn.HybridBlock):
                  pm_channels=256, sm_channels=32, 
                  stds=(0.1, 0.1, 0.2, 0.2), nms_thresh=0.45, 
                  nms_topk=1000, post_nms=400, 
-                 anchor_alloc_size=192, ctx=mx.cpu(),
+                 anchor_alloc_size=160, ctx=mx.cpu(),
                  norm_layer=nn.BatchNorm, norm_kwargs=None,**kwargs):
         super(CLRS, self).__init__(**kwargs)
         

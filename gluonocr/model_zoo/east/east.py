@@ -45,12 +45,12 @@ class EAST(nn.HybridBlock):
     def hybrid_forward(self, F, x):
         feats = []
         for block in self.stages:
-            x= block(x)
+            x = block(x)
             feats.append(x)
         feats = feats[::-1]
         h = feats[0]
         for i in range(3):
-            h = F.UpSampling(feats[i], scale=2, sample_type='nearest')
+            h = F.UpSampling(h, scale=2, sample_type='nearest')
             h = F.concat(h, feats[i+1], dim=1)
             h = self.convs[i](h)
         scores = self.pred_score(h)

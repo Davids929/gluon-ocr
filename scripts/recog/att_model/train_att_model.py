@@ -59,7 +59,7 @@ class Trainer(object):
         self.net.collect_params().reset_ctx(self.ctx)
         self.loss = gluon.loss.SoftmaxCELoss()
         self.loss_metric = mx.metric.Loss('SoftmaxCELoss')
-        self.acc_metric  = RecogAccuracy(voc_size, ctc_mode=False)
+        self.acc_metric  = RecogAccuracy()
 
     def init_model(self):
         if args.resume.strip():

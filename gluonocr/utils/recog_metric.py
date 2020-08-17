@@ -104,3 +104,13 @@ class RecogDistanceEvaluator(object):
                'hmean':hmean}
         return res
         
+if __name__ == '__main__':
+    gts   = [['123', '456', '789']]
+    preds = [['122', '456', '788']]
+
+    evaluator = RecogDistanceEvaluator()
+    results = []
+    for gt, pred in zip(gts, preds):
+        results.append(evaluator.evaluate_image(gt, pred))
+    metrics = evaluator.combine_results(results)
+    print(metrics)

@@ -65,7 +65,7 @@ class Trainer(object):
         val_dataset  = EASTDataset(args.train_img_dir, 
                                     args.train_lab_dir, mode='val',
                                     img_size=(args.data_shape, args.data_shape))
-
+        args.num_samples = len(train_dataset)
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, 
                                       last_batch='discard', shuffle=True, 
                                       num_workers=args.num_workers, pin_memory=False)
@@ -90,8 +90,8 @@ class Trainer(object):
                         step_factor=args.lr_decay, power=2),
             ])
 
-        trainer = gluon.Trainer(self.net.collect_params(), 'adam',
-            {'wd': args.wd, 'lr_scheduler': lr_scheduler}) #'momentum': args.momentum, 
+        trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
+            {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler}) #
 
         # set up logger
         logging.basicConfig()

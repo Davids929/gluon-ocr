@@ -63,17 +63,23 @@ class CLRSLoss(gluon.Block):
                  min_hard_negatives=0, **kwargs):
         super(CLRSLoss, self).__init__(**kwargs)
         
-        self.det_loss = SSDMultiBoxLoss(lambd=lambd1, rho=rho,
-                                        negative_mining_ratio=negative_mining_ratio, 
-                                        min_hard_negatives=min_hard_negatives)
+        # self.det_loss = SSDMultiBoxLoss(lambd=lambd1, rho=rho,
+        #                                 negative_mining_ratio=negative_mining_ratio, 
+        #                                 min_hard_negatives=min_hard_negatives)
         self._lambd1  = lambd1
         self._lambd2  = lambd2
+        self.ce_loss  = SoftmaxCELoss()
+        self.l1_loss  = MaskSmoothL1Loss()
         self.seg_loss = DiceLoss()
 
     def forward(self, pred, batch):
-        sum_loss, cls_loss, box_loss = self.det_loss(pred['cls_pred'], pred['box_pred'], 
-                                                     batch['cls_targ'], batch['box_targ'])
+        
+        # sum_loss, cls_loss, box_loss = self.det_loss(pred['cls_pred'], pred['box_pred'], 
+        #                                              batch['cls_targ'], batch['box_targ'])
+        cls_loss = self.ce_loss(pred['cls_pred'], batch['cls_targ'])
+        box_loss = self.l1_loss(pred['box_pred'], batch['box_targ'], batch['box_mask'])
+
         seg_loss = self.seg_loss(pred['seg_pred'], batch['seg_gt'], batch['mask'])
-        sum_loss = cls_loss[0] + self._lambd1*box_loss[0] + self._lambd2*seg_loss
-        metrics  = dict(seg_loss=seg_loss, cls_loss=cls_loss[0], box_loss=box_loss[0])
+        sum_loss = cls_loss + self._lambd1*box_loss + self._lambd2*seg_loss
+        metrics  = dict(seg_loss=seg_loss, cls_loss=cls_loss, box_loss=box_loss)
         return sum_loss, metrics

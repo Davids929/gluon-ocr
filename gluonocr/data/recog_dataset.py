@@ -110,7 +110,6 @@ class FixSizeDataset(Dataset):
         if h > w:
             img_np = np.rot90(img_np)
             h, w = w, h
-
         w = int(math.ceil(w*self.short_side/h/self.min_divisor))*self.min_divisor
         if w> max_width:
             w = max_width

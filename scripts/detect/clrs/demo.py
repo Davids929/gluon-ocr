@@ -58,16 +58,17 @@ class Demo(object):
                 new_height = max_scale
                 new_width = int(math.ceil(new_height / height * width))
         resized_img = cv2.resize(img, (new_width, new_height))
-        side = max(new_height, new_width)
-        padd_img = np.zeros((side, side, 3), dtype=np.uint8)
-        padd_img[:new_height, :new_width, :] = resized_img
-        return padd_img
+        return resized_img
         
     def load_image(self, image_path):
         img = cv2.imread(image_path, cv2.IMREAD_COLOR).astype('float32')
         original_shape = img.shape[:2]
         img = self.resize_image(img)
-        img = mx.nd.array(img)
+        new_height, new_width = img.shape[:2]
+        side = max(new_height, new_width)
+        padd_img = np.zeros((side, side, 3), dtype=np.uint8)
+        padd_img[:new_height, :new_width, :] = img
+        img = mx.nd.array(padd_img)
         img = mx.nd.image.to_tensor(img)
         img = mx.nd.image.normalize(img, mean=self.mean, std=self.std)
         img = img.expand_dims(0).as_in_context(self.ctx)
@@ -84,16 +85,16 @@ class Demo(object):
         if not os.path.isdir(self.args.result_dir):
             os.mkdir(self.args.result_dir)
         
-        for image_path in image_list[:30]:
+        for image_path in image_list:
             print(image_path)
             img, origin_shape = self.load_image(image_path)
-            origh_h, origin_w = origin_shape
+            origin_h, origin_w = origin_shape
             ids, scores, bboxes, seg_maps = self.net(img)
             
             ids = ids.asnumpy()[0]
             bboxes = bboxes.asnumpy()[0]
             seg_maps = seg_maps.asnumpy()[0]
-            ratio = 1.0*max(origh_h, origin_w)/self.args.image_size
+            ratio = 1.0*max(origin_h, origin_w)/self.args.image_size
             boxes = self.struct.get_boxes(ids, bboxes, seg_maps, ratio)
 
             save_name = '.'.join(os.path.basename(image_path).split('.')[:-1]) + '.txt'
@@ -103,8 +104,6 @@ class Demo(object):
             if visualize:
                 vis_image = self.visualize(image_path, boxes, seg_maps)
                 cv2.imwrite(os.path.join(self.args.result_dir, os.path.basename(image_path)), vis_image)
-            import pdb
-            pdb.set_trace()
 
     def save_detect_res(self, boxes, save_path):
         num = boxes.shape[0]
@@ -129,9 +128,10 @@ class Demo(object):
         bina_map[seg_maps[1]>self.args.seg_thresh, :] = [255, 0, 0]
         bina_map[seg_maps[2]>self.args.seg_thresh, :] = [0, 255, 0]
         bina_map[seg_maps[3]>self.args.seg_thresh, :] = [0, 0, 255]
-        bina_map = cv2.resize(bina_map, (origin_w, origin_h), 
+        max_side = max(origin_w, origin_h)
+        bina_map = cv2.resize(bina_map, (max_side, max_side), 
                             interpolation=cv2.INTER_NEAREST)
-        
+        bina_map = bina_map[:origin_h, :origin_w, :]
         for box in boxes:
             box = np.array(box).astype(np.int32).reshape(-1, 2)
             cv2.polylines(pred_canvas, [box], True, (255, 255, 0), 2)

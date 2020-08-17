@@ -14,7 +14,8 @@ class DetectionIoUEvaluator(object):
         self.iou_constraint = iou_constraint
         self.area_precision_constraint = area_precision_constraint
 
-    def evaluate_image(self, gt, pred):
+    def evaluate_image(self, gt, pred, ignore=None):
+
         def get_union(pD, pG):
             return Polygon(pD).union(Polygon(pG)).area
 
@@ -63,11 +64,13 @@ class DetectionIoUEvaluator(object):
 
         evaluationLog = ""
 
-        # print(len(gt))
+        if ignore is None:
+            ignore = [False]*len(gt)
+        
         for n in range(len(gt)):
-            points = gt[n]['points']
+            points = gt[n]#['points']
             # transcription = gt[n]['text']
-            dontCare = gt[n]['ignore']
+            dontCare = ignore[n]#['ignore']
             points = Polygon(points)
             points = points.buffer(0)
             if not Polygon(points).is_valid or not Polygon(points).is_simple:
@@ -84,7 +87,7 @@ class DetectionIoUEvaluator(object):
             if len(gtDontCarePolsNum) > 0 else "\n")
 
         for n in range(len(pred)):
-            points = pred[n]['points']
+            points = pred[n]#['points']
             points = Polygon(points)
             points = points.buffer(0)
             if not Polygon(points).is_valid or not Polygon(points).is_simple:
@@ -194,22 +197,15 @@ class DetectionIoUEvaluator(object):
 
 if __name__ == '__main__':
     evaluator = DetectionIoUEvaluator()
-    gts = [[{
-        'points': [(0, 0), (1, 0), (1, 1), (0, 1)],
-        'text': 1234,
-        'ignore': False,
-    }, {
-        'points': [(2, 2), (3, 2), (3, 3), (2, 3)],
-        'text': 5678,
-        'ignore': False,
-    }]]
-    preds = [[{
-        'points': [(0.1, 0.1), (1, 0), (1, 1), (0, 1)],
-        'text': 123,
-        'ignore': False,
-    }]]
+    gts = [[[(0, 0), (1, 0), (1, 1), (0, 1)],
+            [(2, 2), (3, 2), (3, 3), (2, 3)]]   
+          ]
+    ignores = [[False, False]]
+    preds = [[[(0.1, 0.1), (1, 0), (1, 1), (0, 1)]]
+            ]
+    
     results = []
-    for gt, pred in zip(gts, preds):
-        results.append(evaluator.evaluate_image(gt, pred))
+    for gt, pred, ignore in zip(gts, preds, ignores):
+        results.append(evaluator.evaluate_image(gt, pred, ignore))
     metrics = evaluator.combine_results(results)
     print(metrics)

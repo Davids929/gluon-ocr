@@ -59,7 +59,7 @@ class Demo(object):
         return img
         
     def load_data(self, image_path):
-        img = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        img = cv2.imread(image_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         original_shape = img.shape[:2]
         img = self.resize_image(img)
@@ -70,8 +70,7 @@ class Demo(object):
         img = mx.nd.image.to_tensor(img)
         img = mx.nd.image.normalize(img, mean=mean, std=std)
         img = img.expand_dims(0).as_in_context(self.ctx)
-        mask  = mx.nd.ones(shape=(1, 1, h//32, w//4), dtype='float32', ctx=self.ctx)
-        return img, mask
+        return img
     
     def ctc_ids2text(self, ids, blank):
         if isinstance(ids, np.ndarray):
@@ -93,9 +92,9 @@ class Demo(object):
         image_list.sort()
         text_list = []
         for image_path in image_list:
-            data, mask = self.load_data(image_path)
+            data  = self.load_data(image_path)
             time1 = time.time()
-            pred  = self.net(data, mask)
+            pred  = self.net(data)
             time2 = time.time()
             pred  = mx.nd.softmax(pred)
             pred  = mx.nd.argmax(pred, axis=-1) 
@@ -136,5 +135,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     demo = Demo(args)
-    save_path = '/home/idcard/data/scene_text_lines/test_results0713.txt'
+    save_path = '/home/idcard/data/scene_text_lines/test_results0728.txt'
     demo.test(args.image_path, save_path)

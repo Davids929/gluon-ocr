@@ -107,15 +107,15 @@ class DBDataset(Dataset):
         if layout == "CHW":
             c, h, w = img.shape
             new_img = np.zeros((c, size[0], size[1]))
-            new_img[:, :h, :w] = img
+            new_img[:, :h, :w] = img.copy()
         elif layout == "HWC":
             h, w, c = img.shape
             new_img = np.zeros((size[0], size[1], c))
-            new_img[:h, :w, :] = img
+            new_img[:h, :w, :] = img.copy()
         elif layout == "HW":
             h, w = img.shape
             new_img = np.zeros((size[0], size[1]))
-            new_img[:h, :w] = img
+            new_img[:h, :w] = img.copy()
         else:
             raise ValueError('Layout type is not support.')
         return new_img
@@ -211,6 +211,8 @@ class CLRSDataset(DBDataset):
         return type(self).CLASSES
 
     def __getitem__(self, idx):
+        import time
+        t1 = time.time()
         img_path = os.path.join(self.img_dir, self.imgs_list[idx])
         lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
         img_np   = cv2.imread(img_path)
@@ -220,16 +222,21 @@ class CLRSDataset(DBDataset):
         polygons, ignore_tags = self._load_ann(lab_path)
         if len(polygons) == 0:
             return self.__getitem__(idx-1)
+        
         if self.augment_fns is not None:
             img_np, polygons = self.augment_fns(img_np, polygons)
-        if self.mode != 'train':
-            img_np, polygons = self.image_resize(img_np, polygons, self.img_size)
         data = {'image':img_np, 'polygons':polygons, 'ignore_tags':ignore_tags}
         if self.mode == 'train':
             data = self.random_crop(data)
+        else:
+            data['image'], data['polygons'] = self.image_resize(data['image'], 
+                                                                data['polygons'], 
+                                                                self.img_size)
+
         boxes, seg_gt, mask = self.gen_gt(data, self.img_size)
         if len(boxes)<4:
             return self.__getitem__(idx-1)
+    
         image = self.padd_image(data['image'], self.img_size, layout='HWC')
         if self.debug:
             img_np = image.copy()
@@ -258,8 +265,8 @@ class CLRSDataset(DBDataset):
             show = np.concatenate([img_np, show, seg_mask], axis=1).astype(np.uint8)
             show = cv2.cvtColor(show, cv2.COLOR_RGB2BGR)
             cv2.imwrite('clrs_label.jpg', show)
-            
-        image = mx.nd.array(image, dtype='float32')
+
+        image = mx.nd.array(image, dtype='uint8')
         image = normalize_fn(image)
         boxes = mx.nd.array(boxes, dtype='float32')
         seg_gt = mx.nd.array(seg_gt, dtype='float32')

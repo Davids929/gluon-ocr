@@ -96,7 +96,7 @@ class Trainer(object):
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=shuffle, 
                                       batch_sampler=train_sampler, pin_memory=True,
                                       num_workers=args.num_workers, last_batch='discard')
-        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, 
+        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size//len(self.ctx), 
                                     batch_sampler=val_sampler, pin_memory=True,
                                     num_workers=args.num_workers, last_batch='keep')
         return train_dataloader, val_dataloader
@@ -151,23 +151,19 @@ class Trainer(object):
                
                 with mx.autograd.record():
                     for sd, fm, tl, tm in zip(src_data, fea_mask, tag_lab, tag_mask):
-                        out = self.net(sd, fm)
+                        out = self.net(sd)
                         with mx.autograd.pause():
                             lab_length  = mx.nd.sum(tm, axis=-1)
                             pred_length = mx.nd.sum_axis(fm, axis=[1,2,3])
-                        loss = self.loss(out, tl, pred_length, lab_length)
-                        with mx.autograd.pause():
-                            ll = loss.asnumpy()
-                            if np.sum(np.isnan(ll)) > 0:
-                                print('loss is nan')
-                                print(ll)
-                                continue
+                        loss = self.loss(out, tl) #, pred_length, lab_length
+                        
                         l_list.append(loss)
                     mx.autograd.backward(l_list)
                 trainer.step(args.batch_size)
                 self.acc_metric.update(out, tl, tm)
                 self.loss_metric.update(0, l_list)
                 if args.log_interval and not (i + 1) % args.log_interval:
+                    self.acc_metric.update(out, tl, tm)
                     name1, acc1 = self.acc_metric.get()
                     name2, loss2 = self.loss_metric.get()
                     logger.info('[Epoch {}][Batch {}], LR: {:.2E}, Speed: {:.3f} samples/sec, {}={:.3f}, {}={:.3f}'.format(
@@ -200,7 +196,7 @@ class Trainer(object):
             s_mask = s_mask[:, :, ::32, ::4]
             t_label = data[2]
             t_mask = data[3]
-            out  = self.net(s_data, s_mask)
+            out  = self.net(s_data)
             self.acc_metric.update(out, t_label, t_mask)
         name, acc = self.acc_metric.get()
         self.acc_metric.reset()
@@ -208,11 +204,10 @@ class Trainer(object):
 
     def export_model(self):
         data = mx.nd.ones((1, 3, 32, 128), dtype='float32', ctx=self.ctx[0])
-        mask = mx.nd.ones((1, 1, 1, 32), dtype='float32', ctx=self.ctx[0])
         self.net.load_parameters(args.resume.strip())
         self.net.hybridize()
         self.net.collect_params().reset_ctx(self.ctx)
-        pred1 = self.net(data, mask)
+        pred1 = self.net(data)
         self.net.export(args.save_prefix, epoch=0)
         print('Successfully export model!')
         sys.exit()

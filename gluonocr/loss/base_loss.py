@@ -89,6 +89,27 @@ class BalanceCELoss(Loss):
                           (positive_count + negative_count + self._eps)
         return balance_loss
 
+class SoftmaxCELoss(gluon.loss.Loss):
+    def __init__(self, axis=-1, alpha=0.25, gamma=2, batch_axis=0, **kwargs):
+        super(SoftmaxCELoss, self).__init__(None, batch_axis, **kwargs)
+        self._axis = axis
+        self._alpha = alpha
+        self._gamma = gamma
+
+    def hybrid_forward(self, F, output, label):
+        Nc = (label==1).sum()
+        mask = F.expand_dims(label!=-1, axis=-1)
+        output = F.softmax(output)
+        # picl first element if label<=0, second element if label==1, third if label>=2
+        pj = output.pick(label, axis=self._axis, keepdims=True)
+        # loss = - self._alpha * ((1 - pj) ** self._gamma) * (pj + 1e-5).log()
+        loss = -(pj + 1e-5).log()
+        loss = F.broadcast_mul(loss, mask)
+        return loss.sum(axis=self._batch_axis, exclude=True)/(Nc + 1e-5)
+
+
+
+
 class BoxIOULoss(Loss):
     """
     iou_type: one of ['iou', 'giou', 'diou', 'ciou'].

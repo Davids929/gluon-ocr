@@ -82,10 +82,10 @@ class Trainer(object):
             args.num_samples = len(train_dataset)
         train_dataloader = DataLoader(train_dataset.transform(tg_fn), batch_size=args.batch_size, 
                                       last_batch='discard', shuffle=True, 
-                                      num_workers=args.num_workers, pin_memory=False)
+                                      num_workers=args.num_workers, pin_memory=True)
         val_batchify_fn = Tuple(Stack(), Pad(pad_val=-1), Stack(), Stack())
-        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size,
-                                    batchify_fn=val_batchify_fn,  
+        val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size//len(self.ctx),
+                                    batchify_fn=val_batchify_fn, pin_memory=True,
                                     num_workers=args.num_workers, last_batch='keep')
         return train_dataloader, val_dataloader, val_metric
 
@@ -147,7 +147,7 @@ class Trainer(object):
                 mask     = gluon.utils.split_and_load(batch[5], ctx_list=self.ctx)
                 sum_losses, cls_losses, box_losses, seg_losses = [], [], [], []
                 with mx.autograd.record():
-                    for d, ct, bt, bm, sg, m in zip(data, cls_targ, box_targ, box_mask, seg_gt, mask):                       
+                    for d, ct, bt, bm, sg, m in zip(data, cls_targ, box_targ, box_mask, seg_gt, mask):
                         cls_pred, box_pred, _, seg_pred = self.net(d)
                         pred = {'cls_pred':cls_pred, 'box_pred':box_pred, 'seg_pred':seg_pred}
                         lab  = {'cls_targ':ct, 'box_targ':bt, 'box_mask':bm, 'seg_gt':sg, 'mask':m}

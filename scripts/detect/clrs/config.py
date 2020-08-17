@@ -14,10 +14,10 @@ def parse_args():
     parser.add_argument('--train-lab-dir', type=str, default='')
     parser.add_argument('--val-img-dir', type=str, default='')
     parser.add_argument('--val-lab-dir', type=str, default='')
-    parser.add_argument('--data-shape', type=int, default=640,
+    parser.add_argument('--data-shape', type=int, default=512,
                         help="Input data shape, use 640.")
     
-    parser.add_argument('--batch-size', type=int, default=1,
+    parser.add_argument('--batch-size', type=int, default=8,
                         help='Training mini-batch size')
     parser.add_argument('--num-workers', '-j', dest='num_workers', type=int,
                         default=0, help='Number of data workers, you can use larger '

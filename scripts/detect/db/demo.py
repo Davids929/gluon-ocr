@@ -43,7 +43,7 @@ class Demo(object):
         self.std  = (0.229, 0.224, 0.225)
         self.struct = DBPostProcess(thresh=args.thresh, box_thresh=args.box_thresh)
 
-    def resize_image(self, img, max_scale=1024):
+    def resize_image(self, img, max_scale=2048):
         height, width, _ = img.shape
         if height < width:
             new_height = self.args.image_short_side
@@ -62,7 +62,6 @@ class Demo(object):
         
     def load_image(self, image_path):
         img = cv2.imread(image_path, cv2.IMREAD_COLOR).astype('float32')
-        #img = np.rot90(img, 3)
         original_shape = img.shape[:2]
         img = self.resize_image(img)
         img = mx.nd.array(img)
@@ -82,7 +81,7 @@ class Demo(object):
         if not os.path.isdir(self.args.result_dir):
             os.mkdir(self.args.result_dir)
         
-        for image_path in image_list[:30]:
+        for image_path in image_list:
             img, origin_shape = self.load_image(image_path)
             origh_h, origin_w = origin_shape
             outputs = self.net(img)

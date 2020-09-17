@@ -5,6 +5,8 @@ from mxnet.gluon import nn
 from .anchor import CLRSAnchorGenerator
 from gluoncv.nn.coder import NormalizedBoxCenterDecoder, MultiPerClassDecoder
 
+__all__ = ['CLRS', 'get_clrs']
+
 class DM(nn.HybridBlock):
     def __init__(self, channels=128, ksize=2, strides=2, pad=0, **kwargs):
         super(DM, self).__init__(**kwargs)
@@ -233,6 +235,18 @@ class CLRS(nn.HybridBlock):
         scores = F.slice_axis(result, axis=2, begin=1, end=2)
         bboxes = F.slice_axis(result, axis=2, begin=2, end=6)
         return ids, scores, bboxes, seg_maps
+
+    def export_block(self, prefix, param_path, ctx=mx.cpu()):
+        if not isinstance(ctx, list):
+            ctx = [ctx]
+        data = mx.nd.ones((1, 3, 512, 512), dtype='float32', ctx=ctx[0])
+        self.load_parameters(param_path)
+        self.set_nms(0.45, 1000, 400)
+        self.hybridize()
+        self.collect_params().reset_ctx(ctx)
+        pred1 = self(data)
+        self.export(prefix, epoch=0)
+        print('Successfully export model!')
 
 def get_clrs(backbone_name, num_layers, 
              norm_layer=nn.BatchNorm, norm_kwargs=None,

@@ -187,13 +187,7 @@ class Trainer(object):
         return loss0
 
     def export_model(self):
-        data = mx.nd.ones((1, 3, 512, 512), dtype='float32', ctx=self.ctx[0])
-        self.net.load_parameters(args.resume.strip())
-        self.net.hybridize()
-        self.net.collect_params().reset_ctx(self.ctx)
-        pred1 = self.net(data)
-        self.net.export(args.save_prefix, epoch=0)
-        print('Successfully export model!')
+        self.net.export_block(args.save_prefix, args.resume.strip(), self.ctx)
         sys.exit()
 
 if __name__ == '__main__':

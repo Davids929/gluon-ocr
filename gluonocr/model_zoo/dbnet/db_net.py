@@ -74,6 +74,17 @@ class DBNet(gluon.HybridBlock):
         else:
             return binary
 
+    def export_block(self, prefix, param_path, ctx=mx.cpu()):
+        if not isinstance(ctx, list):
+            ctx = [ctx]
+        data = mx.nd.ones((1, 3, 512, 512), dtype='float32', ctx=ctx[0])
+        self.load_parameters(param_path)
+        self.hybridize()
+        self.collect_params().reset_ctx(ctx)
+        pred1 = self(data)
+        self.export(prefix, epoch=0)
+        print('Successfully export model!')
+
 def get_db(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
            norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):
     from ..resnet import get_resnet

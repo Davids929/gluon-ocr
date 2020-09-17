@@ -15,6 +15,8 @@ from gluonocr.model_zoo import get_db
 from gluonocr.data import DBDataset 
 from gluonocr.data import PointAugmenter
 from gluonocr.loss import DBLoss
+from gluonocr.post_process import DBPostProcess
+from gluonocr.utils.detect_metric import DetectionIoUEvaluator
 from config import args
 
 gutils.random.seed(args.seed)
@@ -45,6 +47,8 @@ class Trainer(object):
         
         self.train_dataloader, self.val_dataloader = self.get_dataloader()
         self.loss = DBLoss()
+        self.post_proc = DBPostProcess()
+        self.metric    = DetectionIoUEvaluator() 
         self.sum_loss  = mx.metric.Loss('SumLoss')
         self.bce_loss  = mx.metric.Loss('BalanceCELoss')
         self.l1_loss   = mx.metric.Loss('L1Loss')
@@ -215,10 +219,7 @@ class Trainer(object):
         return loss0
 
     def export_model(self):
-        data = mx.nd.ones((1, 3, 224, 224), dtype='float32', ctx=self.ctx[0])
-        pred1 = self.net(data)
-        self.net.export(args.save_prefix, epoch=0)
-        print('Successfully export model!')
+        self.net.export_block(args.save_prefix, args.resume.strip(), self.ctx)
         sys.exit()
 
 if __name__ == '__main__':

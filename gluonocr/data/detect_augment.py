@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import imgaug
 import imgaug.augmenters as iaa
+from imgaug.augmentables.segmaps import SegmentationMapsOnImage
 
 class MaskAugmenter(object):
     def __init__(self, configs=[]):
@@ -12,8 +13,9 @@ class MaskAugmenter(object):
             self.aug = self.get_aug_seq(configs)    
 
     def __call__(self, img, mask):
+        mask = SegmentationMapsOnImage(mask, shape=img.shape)
         img, mask = self.aug(image=img, segmentation_maps=mask)
-        return img, mask
+        return img, mask.get_arr()
 
     def get_aug_seq(self, configs):
         seqence = []

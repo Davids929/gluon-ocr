@@ -26,14 +26,22 @@ class CRNN(nn.HybridBlock):
         x = self.stages(x)
         x = F.transpose(x, axes=(0, 3, 2, 1))
         x = F.reshape(x, (0, -3, 0))
-        # if mask is not None:
-        #     mask = F.transpose(mask, axes=(0, 3, 2, 1))
-        #     mask = F.reshape(mask, (0, -3, 0))
-        #     x = F.broadcast_mul(x, mask)
         x = self.lstm(x)
         x = self.dropout(x)
         x = self.fc(x)
         return x
+    
+    def export_block(self, prefix, param_path, ctx=mx.cpu()):
+        if not isinstance(ctx, list):
+            ctx = [ctx]
+        data = mx.nd.ones((1, 3, 32, 320), dtype='float32', ctx=ctx[0])
+        self.load_parameters(param_path)
+        self.hybridize()
+        self.collect_params().reset_ctx(ctx)
+        pred1 = self(data)
+        self.export(prefix, epoch=0)
+        print('Successfully export model!')
+    
 
 def get_crnn(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
              norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):

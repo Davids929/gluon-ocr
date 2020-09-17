@@ -10,6 +10,8 @@ from .make_seg_data import MakeShrinkMap, MakeBorderMap
 from .detect_augment import PointAugmenter, RandomCropData
 from gluoncv.model_zoo.ssd.target import SSDTargetGenerator
 
+__all__ = ['DBDataset', 'EASTDataset', 'CLRSDataset', 'CLRSTrainTransform']
+
 class DBDataset(Dataset):
     def __init__(self, img_dir, lab_dir, augment_fns=None, img_size=(640, 640),
                  min_text_size=8, shrink_ratio=0.4, debug=False, mode='train'):
@@ -25,28 +27,36 @@ class DBDataset(Dataset):
         self.get_label   = MakeShrinkMap(min_text_size=min_text_size, shrink_ratio=shrink_ratio)
         self.get_border  = MakeBorderMap(shrink_ratio=shrink_ratio)
 
-    def _get_items(self, img_dir, lab_dir):
-        file_list = os.listdir(img_dir)
+    def _get_items(self, img_dirs, lab_dirs):
+        if not isinstance(img_dirs, list):
+            img_dirs = [img_dirs]
+        if not isinstance(lab_dirs, list):
+            lab_dirs = [lab_dirs]
         imgs_list, labs_list = [], [] 
-        for file in file_list:
-            tp = file.split('.')[-1]
-            if tp.lower() not in self.imgs_type:
-                continue
-            lab_name = file + '.txt'
-            if not os.path.exists(os.path.join(lab_dir, lab_name)):
-                lab_name = file[:-len(tp)] + 'txt'
-                if not os.path.exists(os.path.join(lab_dir, lab_name)):
+        for img_dir, lab_dir in zip(img_dirs, lab_dirs):
+            file_list = os.listdir(img_dir)
+            for file in file_list:
+                tp = file.split('.')[-1]
+                if tp.lower() not in self.imgs_type:
                     continue
-            imgs_list.append(file)
-            labs_list.append(lab_name)
+                lab_name = file + '.txt'
+                lab_path = os.path.join(lab_dir, lab_name)
+                if not os.path.exists(lab_path):
+                    lab_name = file[:-len(tp)] + 'txt'
+                    lab_path = os.path.join(lab_dir, lab_name)
+                    if not os.path.exists(lab_path):
+                        continue
+                imgs_list.append(os.path.join(img_dir, file))
+                labs_list.append(lab_path)
         return imgs_list, labs_list
 
     def __len__(self):
         return len(self.imgs_list)
     
     def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.imgs_list[idx])
-        lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
+        # img_path = os.path.join(self.img_dir, self.imgs_list[idx])
+        # lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
+        img_path, lab_path = self.imgs_list[idx], self.labs_list[idx]
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)
@@ -151,8 +161,9 @@ class EASTDataset(DBDataset):
         self.get_label.gen_geometry = True
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.img_dir, self.imgs_list[idx])
-        lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
+        # img_path = os.path.join(self.img_dir, self.imgs_list[idx])
+        # lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
+        img_path, lab_path = self.imgs_list[idx], self.labs_list[idx]
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)
@@ -211,10 +222,9 @@ class CLRSDataset(DBDataset):
         return type(self).CLASSES
 
     def __getitem__(self, idx):
-        import time
-        t1 = time.time()
-        img_path = os.path.join(self.img_dir, self.imgs_list[idx])
-        lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
+        # img_path = os.path.join(self.img_dir, self.imgs_list[idx])
+        # lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
+        img_path, lab_path = self.imgs_list[idx], self.labs_list[idx]
         img_np   = cv2.imread(img_path)
         if img_np is None:
             return self.__getitem__(idx-1)

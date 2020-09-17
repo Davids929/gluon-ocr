@@ -1,10 +1,9 @@
 #coding=utf-8
 import mxnet as mx
 from mxnet import gluon
-import numpy as np
 from mxnet.gluon import nn
-from .att_encoder import *
-from .att_decoder import *
+from .att_encoder import get_encoder
+from .att_decoder import AttDecoder
 
 class AttModel(nn.HybridBlock):
     def __init__(self, encoder, decoder, start_symbol=0, end_symbol=1, **kwargs):
@@ -44,6 +43,19 @@ class AttModel(nn.HybridBlock):
         outputs = F.reshape(outputs, (0, -1))
         outputs = F.transpose(outputs, axes=(1, 0))
         return outputs
+
+    def export_block(self, prefix, param_path, ctx=mx.cpu()):
+        if not isinstance(ctx, list):
+            ctx = [ctx]
+        data = mx.nd.ones((1, 3, 32, 128), ctx=ctx[0])
+        mask = mx.nd.ones((1, 1, 1, 16), ctx=ctx[0])
+        states = self.begin_state(1, ctx[0])
+        self.hybridize()
+        self.load_parameters(param_path)
+        self.collect_params().reset_ctx(ctx)
+        outs = self(data, mask, *states)
+        self.export(prefix)
+        print('Export model successfully.')
 
     def begin_state(self, *args):
         return self.decoder.begin_state(*args)

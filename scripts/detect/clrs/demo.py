@@ -7,6 +7,7 @@ import math
 import mxnet as mx
 from mxnet import gluon
 import sys
+import time
 sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
 from gluonocr.post_process import CLRSPostProcess
 
@@ -89,14 +90,15 @@ class Demo(object):
             print(image_path)
             img, origin_shape = self.load_image(image_path)
             origin_h, origin_w = origin_shape
+            t1 = time.time()
             ids, scores, bboxes, seg_maps = self.net(img)
-            
+            t2 = time.time()
             ids = ids.asnumpy()[0]
             bboxes = bboxes.asnumpy()[0]
             seg_maps = seg_maps.asnumpy()[0]
             ratio = 1.0*max(origin_h, origin_w)/self.args.image_size
             boxes = self.struct.get_boxes(ids, bboxes, seg_maps, ratio)
-
+            print('forward cost time:{:.3f},  post process cost time:{:.3f}'.format(t2-t1, time.time() - t2))
             save_name = '.'.join(os.path.basename(image_path).split('.')[:-1]) + '.txt'
             save_path = os.path.join(self.args.result_dir, save_name)
             #self.save_detect_res(boxes, save_path)

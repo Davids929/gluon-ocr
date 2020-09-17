@@ -18,7 +18,7 @@ GluonOCR provides implementations of deep learning models in text detection and 
     - [Tricks](./doc/tricks.md)
 - Deployment
     - [Python Inference](#PYTHONINFERENCE)
-    - [C++ Inference](C++INFERENCE)
+    - [C++ Inference](#C++INFERENCE)
 - Datasets
     - [General OCR Datasets(Chinese/English)](https://github.com/PaddlePaddle/PaddleOCR/tree/develop/doc/doc_en/datasets_en.md)
     - [HandWritten_OCR_Datasets(Chinese)](https://github.com/PaddlePaddle/PaddleOCR/tree/develop/doc/doc_en/handwritten_datasets_en.md)

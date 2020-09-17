@@ -3,11 +3,11 @@
 from collections import namedtuple
 import numpy as np
 from shapely.geometry import Polygon
+
 """
 reference from :
 https://github.com/MhLiao/DB/concern/icdar2015_eval/detection/iou.py
 """
-
 
 class DetectionIoUEvaluator(object):
     def __init__(self, iou_constraint=0.5, area_precision_constraint=0.5):

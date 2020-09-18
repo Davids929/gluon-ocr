@@ -1,4 +1,4 @@
-# Gluon-CR Toolkit
+# Gluon-OCR Toolkit
 Gluon-OCR provides implementations of deep learning models in text detection and recognition.
 
 # Supported Models

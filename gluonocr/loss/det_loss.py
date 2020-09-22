@@ -2,8 +2,9 @@
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon.loss import Loss
-from gluoncv.loss import SSDMultiBoxLoss
 from .base_loss import *
+
+__all__ = ['DBLoss', 'EASTLoss', 'CLRSLoss']
 
 class DBLoss(Loss):
     def __init__(self, eps=1e-6, l1_scale=10, bce_scale=5, weight=1., batch_axis=0, **kwargs):
@@ -58,24 +59,17 @@ class EASTLoss(Loss):
         metrics = dict(bce_loss=seg_loss, l1_loss=l1_loss)
         return loss, metrics
 
-class CLRSLoss(gluon.Block):
-    def __init__(self, lambd1=1.0, lambd2=1.0, negative_mining_ratio=3, rho=1.0, 
-                 min_hard_negatives=0, **kwargs):
-        super(CLRSLoss, self).__init__(**kwargs)
+class CLRSLoss(Loss):
+    def __init__(self, lambd1=1.0, lambd2=1.0, weight=1., batch_axis=0, **kwargs):
+        super(CLRSLoss, self).__init__(weight, batch_axis, **kwargs)
         
-        # self.det_loss = SSDMultiBoxLoss(lambd=lambd1, rho=rho,
-        #                                 negative_mining_ratio=negative_mining_ratio, 
-        #                                 min_hard_negatives=min_hard_negatives)
         self._lambd1  = lambd1
         self._lambd2  = lambd2
         self.ce_loss  = SoftmaxCELoss()
         self.l1_loss  = MaskSmoothL1Loss()
         self.seg_loss = DiceLoss()
 
-    def forward(self, pred, batch):
-        
-        # sum_loss, cls_loss, box_loss = self.det_loss(pred['cls_pred'], pred['box_pred'], 
-        #                                              batch['cls_targ'], batch['box_targ'])
+    def forward(self, pred, batch): 
         cls_loss = self.ce_loss(pred['cls_pred'], batch['cls_targ'])
         box_loss = self.l1_loss(pred['box_pred'], batch['box_targ'], batch['box_mask'])
 

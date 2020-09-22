@@ -2,6 +2,7 @@
 import numpy as np
 import imgaug.augmenters as iaa
 import random
+
 class Augmenter(object):
     def __init__(self, configs=[]):
         if configs == []:

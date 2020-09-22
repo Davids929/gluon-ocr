@@ -4,7 +4,6 @@ from mxnet import gluon, nd
 from mxnet.gluon import nn
 from ...nn.attention_cell import _get_attention_cell
 
-
 class AttDecoder(nn.HybridBlock):
     def __init__(self, embed_dim=512, match_dim=512, hidden_dim=512, 
                  voc_size=37, num_layers=2, dropout=0.1, bilstm=False,
@@ -43,7 +42,5 @@ class AttDecoder(nn.HybridBlock):
     def begin_state(self, batch_size, ctx):
         h_state = nd.zeros(shape=(self.num_layers, batch_size, self.hidden_dim), dtype='float32', ctx=ctx)
         c_state = nd.zeros(shape=(self.num_layers, batch_size, self.hidden_dim), dtype='float32', ctx=ctx)
-        # pre_att = nd.zeros(shape=(batch_size, seq_len, 1), dtype='float32', ctx=ctx)
-        # sum_att = nd.zeros(shape=(batch_size, seq_len, 1), dtype='float32', ctx=ctx)
         state = [h_state, c_state]
         return state

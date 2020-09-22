@@ -9,7 +9,7 @@ Downloading icdar2015 dataset from [official website](https://rrc.cvc.uab.es/?ch
 Decompress the downloaded dataset to the working directory, assuming it is decompressed under gluon-ocr/train_data/.
 After decompressing the data set and downloading the annotation file, gluon-ocr/train_data/ has two folders and two files, which are:
 ```
-/gluon-ocr/train_data/icdar2015/
+~/gluon-ocr/train_data/icdar2015/
   └─ ch4_train_word_imgs/                Training image of icdar dataset
   └─ ch4_test_word_imgs/                 Testing image of icdar dataset
   └─ train_icdar2015_label.txt           Training annotation of icdar dataset
@@ -34,9 +34,9 @@ a
 ...
 ```
 
-`gluonocr/utils/gluonocr_dict.txt` is a Chinese dictionary with 7434 characters.
+`~/gluon-ocr/gluonocr/utils/gluonocr_dict.txt` is a Chinese dictionary with 7434 characters.
 
-`gluonocr/utils/ic15_dict.txt` is an English dictionary with 36 characters.
+`~/gluon-ocr/gluonocr/utils/ic15_dict.txt` is an English dictionary with 36 characters.
 
 ### TRAINING
 Training CRNN.
@@ -44,9 +44,9 @@ Training CRNN.
 cd gluon-ocr/scripts/recog/crnn
 python train_crnn.py --network resnet --num-layers 34 --batch-size 300 --dataset-name icdar15 \
 --max-len 30 --fix-width 384 --short-side 32 --gpus 2,3 --num-workers 16 --warmup-epochs 0 \
---lr 0.001 --lr-decay 0.1 --lr-decay-epoch 60 --wd 0.0005 --voc-path gluonocr/utils/ic15_dict.txt \
---train-data-path gluon-ocr/train_data/icdar2015/train_icdar2015_label.txt \
---val-data-path gluon-ocr/train_data/icdar2015/test_icdar2015_label.txt \
+--lr 0.001 --lr-decay 0.1 --lr-decay-epoch 60 --wd 0.0005 --voc-path ../../../gluonocr/utils/ic15_dict.txt \
+--train-data-path ../../../train_data/icdar2015/train_icdar2015_label.txt \
+--val-data-path ../../../train_data/icdar2015/test_icdar2015_label.txt \
 --save-prefix ./checkpoint
 ```
 
@@ -55,9 +55,9 @@ Export model
 cd gluon-ocr/scripts/recog/crnn
 python train_crnn.py --network resnet --num-layers 34 --batch-size 300 --dataset-name icdar15 \
 --max-len 30 --fix-width 384 --short-side 32 --gpus 2,3 --num-workers 16 --warmup-epochs 0 \
---lr 0.001 --lr-decay 0.1 --lr-decay-epoch 60 --wd 0.0005 --voc-path gluonocr/utils/ic15_dict.txt \
---train-data-path gluon-ocr/train_data/icdar2015/train_icdar2015_label.txt \
---val-data-path gluon-ocr/train_data/icdar2015/test_icdar2015_label.txt \
+--lr 0.001 --lr-decay 0.1 --lr-decay-epoch 60 --wd 0.0005 --voc-path ../../../gluonocr/utils/ic15_dict.txt \
+--train-data-path ../../../train_data/icdar2015/train_icdar2015_label.txt \
+--val-data-path ../../../train_data/icdar2015/test_icdar2015_label.txt \
 --save-prefix ./checkpoint --resume ./checkpoint/icdar15-resnet34-crnn_best.params --export-model
 ```
 

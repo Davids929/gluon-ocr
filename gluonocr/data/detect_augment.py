@@ -5,6 +5,8 @@ import imgaug
 import imgaug.augmenters as iaa
 from imgaug.augmentables.segmaps import SegmentationMapsOnImage
 
+__all__ = ['MaskAugmenter', 'PointAugmenter', 'RandomCropData']
+
 class MaskAugmenter(object):
     def __init__(self, configs=[]):
         if len(configs)==0:

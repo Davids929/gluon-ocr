@@ -22,10 +22,10 @@ Training DBNet.
 ```shell
 cd gluon-ocr/scripts/detect/db
 python train_db.py --network resnet --num-layers 50 --dataset-name icdar15 \
---train-img-dir ./gluon-ocr/train_data/icdar2015/icdar_c4_train_imgs \
---train-lab-dir ./gluon-ocr/train_data/icdar2015/icdar_c4_train_labs \
---val-img-dir ./gluon-ocr/train_data/icdar2015/ch4_test_images \
---val-lab-dir ./gluon-ocr/train_data/icdar2015/ch4_test_labels \
+--train-img-dir ../../../icdar2015/icdar_c4_train_imgs \
+--train-lab-dir ../../../icdar2015/icdar_c4_train_labs \
+--val-img-dir ../../../icdar2015/ch4_test_images \
+--val-lab-dir ../../../icdar2015/ch4_test_labels \
 --data-shape 640 --batch-size 4 --num-workers 8 --gpus 1 --lr 0.001 \
 --save-prefix ./checkpoint
 ```

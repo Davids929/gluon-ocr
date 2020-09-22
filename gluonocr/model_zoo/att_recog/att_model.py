@@ -72,3 +72,19 @@ def get_att_model(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu()
     decoder = AttDecoder(**decoder_kwargs)
     net = AttModel(encoder, decoder, start_symbol=start_symbol, end_symbol=end_symbol)
     return net
+
+
+def resnet18_att_model(**kwargs):
+    return get_att_model('resnet', 18, **kwargs)
+
+def resnet34_att_model(**kwargs):
+    return get_att_model('resnet', 34, **kwargs)
+
+def resnet50_att_model(**kwargs):
+    return get_att_model('resnet', 50, **kwargs)
+
+def mobilenet_small_att_model(**kwargs):
+    return get_att_model('mobilenetv3', 24, **kwargs)
+
+def mobilenet_large_att_model(**kwargs):
+    return get_att_model('mobilenetv3', 32, **kwargs)

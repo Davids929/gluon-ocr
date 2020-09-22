@@ -1,7 +1,7 @@
 #coding=utf-8
 import mxnet as mx
 from mxnet import gluon
-from mxnet.gluon.loss import Loss, _apply_weighting
+from mxnet.gluon.loss import Loss
 import numpy as np
 
 class DiceLoss(Loss):
@@ -24,7 +24,6 @@ class MaskL1Loss(Loss):
     def hybrid_forward(self, F, pred, label, mask):
         mask_sum = F.sum(mask)
         loss = F.abs(label - pred)*mask
-        loss = _apply_weighting(F, loss, self._weight)
         loss = F.sum(loss, axis=self._batch_axis, exclude=True)
         return loss/(mask_sum+self._eps)
 

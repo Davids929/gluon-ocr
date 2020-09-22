@@ -4,6 +4,13 @@ import cv2
 from shapely.geometry import Polygon
 import pyclipper
 
+
+"""
+reference from :
+https://github.com/MhLiao/DB/blob/master/data/make_seg_detector_data.py and 
+https://github.com/MhLiao/DB/blob/master/data/make_border_map.py
+"""
+
 class MakeShrinkMap(object):
     def __init__(self, min_text_size=8, shrink_ratio=0.4, gen_geometry=False):
         self.min_text_size = min_text_size
@@ -31,8 +38,7 @@ class MakeShrinkMap(object):
             width = min(np.linalg.norm(polygon[0] - polygon[1]),
                         np.linalg.norm(polygon[2] - polygon[3]))
             if ignore_tags[i] or min(height, width) < self.min_text_size:
-                cv2.fillPoly(mask, polygon.astype(
-                    np.int32)[np.newaxis, :, :], 0)
+                cv2.fillPoly(mask, polygon.astype(np.int32)[np.newaxis, :, :], 0)
                 ignore_tags[i] = True
                 continue
             
@@ -45,8 +51,7 @@ class MakeShrinkMap(object):
                             pyclipper.ET_CLOSEDPOLYGON)
             shrinked = padding.Execute(-distance)
             if shrinked == []:
-                cv2.fillPoly(mask, polygon.astype(
-                    np.int32)[np.newaxis, :, :], 0)
+                cv2.fillPoly(mask, polygon.astype(np.int32)[np.newaxis, :, :], 0)
                 ignore_tags[i] = True
                 continue
             shrinked = np.array(shrinked[0]).reshape(-1, 2)

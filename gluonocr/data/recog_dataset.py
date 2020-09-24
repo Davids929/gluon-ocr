@@ -2,6 +2,7 @@
 import os
 import cv2
 import math
+import lmdb
 import random
 import numpy as np
 import mxnet as mx
@@ -212,6 +213,66 @@ class BucketDataset(FixSizeDataset):
         if not self.add_symbol:
             return img_data, img_mask, lab, lab_mask, idx
         targ_data = mx.nd.ones(shape=(lab_len), dtype='float32')*self.end_sym
+        targ_data[0] = self.start_sym
+        targ_data[1:] = lab[:-1]
+        return img_data, img_mask, targ_data, lab, lab_mask, idx
+
+class LMDBFixSizeDataset(FixSizeDataset):
+    def __init__(self, line_path, voc_path, augment_fn=None, short_side=32, min_divisor=8,
+                 fix_width=256, max_len=60, start_sym=None, end_sym=None):
+        super(LMDBFixSizeDataset, self).__init__(line_path, voc_path, augment_fn=None, 
+                                                 short_side=32, min_divisor=8,
+                                                 fix_width=256, max_len=60, 
+                                                 start_sym=None, end_sym=None)
+        self.lmdb_set = self.imgs_list
+
+    def __len__(self):
+        return self.lmdb_set['num_samples']
+
+    def _get_items(self, line_path):
+        env = lmdb.open(line_path, readonly=True, lock=False, meminit=False)
+        txn = env.begin(write=False)
+        num_samples = int(txn.get('num-samples'.encode()))
+        lmdb_set = {"env":env, "txn":txn, "num_samples":num_samples}
+        return lmdb_set, txn
+
+    @staticmethod
+    def get_img_data(value):
+        """get_img_data"""
+        if not value:
+            return None
+        imgdata = np.frombuffer(value, dtype='uint8')
+        if imgdata is None:
+            return None
+        imgori = cv2.imdecode(imgdata, 1)
+        if imgori is None:
+            return None
+        return imgori
+
+    def __getitem__(self, idx):
+        label_key = 'label-%09d'.encode() % idx
+        image_key = 'image-%09d'.encode() % idx
+        text = self.lmdb_set['txn'].get(label_key).decode('utf-8')
+        img_buf = self.lmdb_set['txn'].get(image_key)
+        img_np  = self.get_img_data(img_buf)
+        if img_np is None:
+            return self.__getitem__(idx-1)
+        img_np   = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+        img_np   = self.image_resize(img_np, max_width=self.fix_width)
+        if self.augment_fn is not None:
+            img_np = self.augment_fn(img_np)
+        h, w = img_np.shape[:2]
+        img_nd   = mx.nd.array(img_np)
+        img_data = mx.nd.zeros((self.short_side, self.fix_width, 3), dtype='float32')
+        img_data[:h, :w, :] = img_nd
+        img_data = normalize_fn(img_data)
+        img_mask = mx.nd.zeros((1, self.short_side, self.fix_width), dtype='float32')
+        img_mask[:, :h, :w] = 1.0
+        lab, lab_mask = self.text2ids(text, self.max_len)
+        if not self.add_symbol:
+            return img_data, img_mask, lab, lab_mask, idx
+
+        targ_data = mx.nd.ones(shape=(self.max_len), dtype='float32')*self.end_sym
         targ_data[0] = self.start_sym
         targ_data[1:] = lab[:-1]
         return img_data, img_mask, targ_data, lab, lab_mask, idx

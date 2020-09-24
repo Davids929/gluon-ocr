@@ -39,20 +39,20 @@ class DBPostProcess(object):
 
         for index in range(num_contours):
             contour = contours[index]
-            points, sside = self.get_mini_boxes(contour)
-            if sside < self.min_size:
+            epsilon = 0.01 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+            points = approx.reshape((-1, 2))
+            if points.shape[0] < 4:
                 continue
-            points = np.array(points)
-            score = self.box_score_fast(pred, points.reshape(-1, 2))
+            else:
+                box = self.unclip(points, unclip_ratio=2.0)
+                if len(box) > 1:
+                    continue
+                box = box.reshape(-1, 2)
+            score = self.box_score_fast(pred, points)
             if self.box_thresh > score:
                 continue
-        
-            box = self.unclip(points, self.unclip_ratio).reshape(-1, 1, 2)
-            box, sside = self.get_mini_boxes(box)
-            box = np.array(box)
-            area = cv2.contourArea(box)
-            if area < self.min_area:
-                continue
+            _, sside = self.get_mini_boxes(box)
             if sside < self.min_size + 2:
                 continue
             
@@ -61,10 +61,8 @@ class DBPostProcess(object):
             box[:, 1] = np.clip(
                 np.round(box[:, 1] / height * dest_height), 0, dest_height)
             
-            boxes.append(box.astype(np.int16))
+            boxes.append(box.tolist())
             scores.append(score)
-        boxes = np.array(boxes, dtype=np.int16)
-        scores = np.array(scores)
         return boxes, scores
 
     def boxes_from_bitmap(self, pred, dest_width, dest_height):

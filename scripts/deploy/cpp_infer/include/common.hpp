@@ -40,13 +40,35 @@
 
 using namespace mxnet::cpp;
 
+inline std::vector<std::string> LoadDict(const std::string dict_path){
+    std::ifstream in(dict_path);
+    std::string line;
+    std::vector<std::string> m_vec;
+    if (in) {
+        while (getline(in, line)) {
+        m_vec.push_back(line);
+        }
+    } else {
+        std::cout << "no such label file: " << dict_path << std::endl;
+        exit(1);
+    }
+    return m_vec;
+}
+
+inline cv::Mat RotateImg(cv::Mat dst_img){
+    cv::Mat srcCopy = cv::Mat(dst_img.rows, dst_img.cols, dst_img.depth());
+    cv::transpose(dst_img, srcCopy);
+    cv::flip(srcCopy, srcCopy, 0);
+    return srcCopy;
+}
+
 // resize short within
-inline cv::Mat ResizeShortWithin(cv::Mat src, int short_size, int max_size, int mult_base) {
+inline cv::Mat ResizeShortWithin(cv::Mat src, int short_size, int max_size, int mult_base, bool fix_height) {
     double h = src.rows;
     double w = src.cols;
     double im_size_min = h;
     double im_size_max = w;
-    if (w < h) {
+    if (!fix_height && w < h) {
         im_size_min = w;
         im_size_max = h;
     }
@@ -58,18 +80,20 @@ inline cv::Mat ResizeShortWithin(cv::Mat src, int short_size, int max_size, int 
     }
     int new_w = static_cast<int>(std::round(w * scale / mb) * mb);
     int new_h = static_cast<int>(std::round(h * scale / mb) * mb);
+    if (fix_height && new_h != short_size){
+        new_h = short_size;
+    }
     cv::Mat dst;
     cv::resize(src, dst, cv::Size(new_w, new_h));
     return dst;
 }
 
-
-void Normalize(cv::Mat *rgb_image){
+inline void Normalize(cv::Mat *rgb_image){
     
-    double e = 1.0;
+    double e = 1.0/255.0;
     std::vector<float> mean = {0.485f, 0.456f, 0.406f};
     std::vector<float> scale= {1 / 0.229f, 1 / 0.224f, 1 / 0.225f};
-    if (is_scale) e /= 255.0;
+    
     (*rgb_image).convertTo(*rgb_image, CV_32FC3, e);
     for (int h = 0; h < rgb_image->rows; h++) {
         for (int w = 0; w < rgb_image->cols; w++) {
@@ -95,16 +119,21 @@ inline NDArray AsData(cv::Mat bgr_image, Context ctx = Context::cpu(), bool norm
     }else{
         rgb_image.convertTo(rgb_image, CV_32FC3);
     }
-    // flatten to single channel, and single row.
-    cv::Mat flat_image = rgb_image.reshape(1, 1);
+    int height = rgb_image.rows;
+    int width  = rgb_image.cols;
+    int channels = rgb_image.channels();
     // a vector of raw pixel values, no copy
     std::vector<float> data_buffer;
-    data_buffer.insert(
-        data_buffer.end(),
-        flat_image.ptr<float>(0),
-        flat_image.ptr<float>(0) + flat_image.cols);
+    for (int c = 0; c < channels; ++c) {
+        for (int i = 0; i < height; ++i) {
+            for (int j = 0; j < width; ++j) {
+                data_buffer.push_back(static_cast<float>(rgb_image.data[(i * height + j) * 3 + c]));
+            }
+        }
+  }
     // construct NDArray from data buffer
-    return NDArray(data_buffer, Shape(1, rgb_image.rows, rgb_image.cols, 3), ctx);
+
+    return NDArray(data_buffer, Shape(1, channels, height, width), ctx);
 }
 
 // Load data from filename

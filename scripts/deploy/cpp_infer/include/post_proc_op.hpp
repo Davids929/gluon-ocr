@@ -57,3 +57,6 @@ template<class T> T clamp(T x, T min, T max){
 
 std::vector<std::vector<float>> Mat2Vector(cv::Mat mat);
 
+std::vector<std::vector<int>>
+OrderPointsClockwise(std::vector<std::vector<int>> pts);
+

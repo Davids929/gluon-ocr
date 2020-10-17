@@ -1,11 +1,6 @@
 
 #pragma once
 
-#include "opencv2/core.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc.hpp"
-#include "mxnet-cpp/MxNetCpp.h"
-
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -16,6 +11,10 @@
 #include <fstream>
 #include <numeric>
 
+#include "opencv2/core.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/imgproc.hpp"
+#include "mxnet-cpp/MxNetCpp.h"
 #include "include/common.hpp"
 #include "include/post_proc_op.hpp"
 
@@ -68,5 +67,8 @@ class DBDetector{
         std::map<std::string, NDArray> args_map_, auxs_map_;
         Executor *exec_;
         DBPostProcess post_process_;
-
+    
+    private:
+        void GetOriginScaleBox(std::vector<std::vector<std::vector<int>>> &boxes, 
+                               int &origin_h, int &origin_w, int &img_h, int &img_w);
 };

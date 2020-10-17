@@ -215,3 +215,22 @@ std::vector<std::vector<float>> Mat2Vector(cv::Mat mat){
     }
     return img_vec;
 }
+
+std::vector<std::vector<int>> 
+OrderPointsClockwise(std::vector<std::vector<int>> pts) {
+  std::vector<std::vector<int>> box = pts;
+  std::sort(box.begin(), box.end(), Xsort<int>);
+
+  std::vector<std::vector<int>> leftmost = {box[0], box[1]};
+  std::vector<std::vector<int>> rightmost = {box[2], box[3]};
+
+  if (leftmost[0][1] > leftmost[1][1])
+    std::swap(leftmost[0], leftmost[1]);
+
+  if (rightmost[0][1] > rightmost[1][1])
+    std::swap(rightmost[0], rightmost[1]);
+
+  std::vector<std::vector<int>> rect = {leftmost[0], rightmost[0], rightmost[1],
+                                        leftmost[1]};
+  return rect;
+}

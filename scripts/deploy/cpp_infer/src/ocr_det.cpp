@@ -29,16 +29,35 @@ void DBDetector::Run(cv::Mat &image, std::vector<std::vector<std::vector<int>>> 
       bina_map.convertTo(bina_map, CV_8UC1);
       boxes = this->post_process_.BoxesFromBitmap(
             pred_map, bina_map, this->box_thresh_, this->unclip_ratio_);
-
+      int origin_h = image.rows;
+      int origin_w = image.cols;
+      GetOriginScaleBox(boxes, origin_h, origin_w, h, w);
 }
 
-int main(){
-  std::cout<<"Hello gluon-ocr!"<<std::endl;
-  DBDetector det("/home/sw/demo/receipt_recognition/model/data/resnet50-db-symbol.json", 
-                     "/home/sw/demo/receipt_recognition/model/data/resnet50-db-0000.params", 
-                     1, 2048, 768, 0.3, 0.3, 2.0, true);
+void DBDetector::GetOriginScaleBox(std::vector<std::vector<std::vector<int>>> &boxes, 
+                               int &origin_h, int &origin_w, int &img_h, int &img_w){
     
-  cv::Mat image = cv::imread("/home/sw/demo/receipt_recognition/test_imgs/20200821165522.jpg", 1);
-  std::vector<std::vector<std::vector<int>>> boxes;
-  det.Run(image, boxes);
+    float ratio_h = float(origin_h)/float(img_h);
+    float ratio_w = float(origin_w)/float(img_w);
+    for (int i=0; i<boxes.size(); i++){
+        boxes[i] = OrderPointsClockwise(boxes[i]);
+        for (int j=0; j<boxes[0].size(); j++){
+           int x = int(float(boxes[i][j][0])*ratio_w);
+           int y = int(float(boxes[i][j][1])*ratio_h);
+           boxes[i][j][0] = clamp(x, 0, origin_w);
+           boxes[i][j][1] = clamp(y, 0, origin_h);
+        }
+    }
+
 }
+
+// int main(){
+//   std::cout<<"Hello gluon-ocr!"<<std::endl;
+//   DBDetector det("/home/sw/demo/receipt_recognition/model/data/resnet50-db-symbol.json", 
+//                      "/home/sw/demo/receipt_recognition/model/data/resnet50-db-0000.params", 
+//                      1, 2048, 768, 0.3, 0.3, 2.0, true);
+    
+//   cv::Mat image = cv::imread("/home/sw/demo/receipt_recognition/test_imgs/20200821165522.jpg", 1);
+//   std::vector<std::vector<std::vector<int>>> boxes;
+//   det.Run(image, boxes);
+// }

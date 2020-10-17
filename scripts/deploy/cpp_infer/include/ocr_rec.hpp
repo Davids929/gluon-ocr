@@ -1,10 +1,5 @@
 #pragma once
 
-#include "opencv2/core.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc.hpp"
-#include "mxnet-cpp/MxNetCpp.h"
-
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -15,7 +10,12 @@
 #include <fstream>
 #include <numeric>
 
+#include "opencv2/core.hpp"
+#include "opencv2/imgcodecs.hpp"
+#include "opencv2/imgproc.hpp"
+#include "mxnet-cpp/MxNetCpp.h"
 #include "include/common.hpp"
+#include "include/utils.hpp"
 
 using namespace mxnet::cpp;
 
@@ -43,7 +43,7 @@ class CRNNRecognizer{
                     this->bucket_keys_.push_back(bucket);
             }
 
-            this->voc_dict_ = LoadDict(dict_path);
+            this->voc_dict_ = ReadFile(dict_path);
             this->voc_size_ = this->voc_dict_.size(); 
             LoadCheckpoint(model_path, params_path, &net_, &args_map_, &auxs_map_, ctx_);
             InitModel();

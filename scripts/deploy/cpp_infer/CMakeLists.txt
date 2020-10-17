@@ -21,7 +21,7 @@ include_directories(
   ${MXNET_ROOT}/3rdparty/mkldnn/include
   ${MXNET_ROOT}/3rdparty/mshadow
   ${MXNET_ROOT}/3rdparty/tvm/nnvm/include
-  ${CMAKE_CURRENT_LIST_DIR}/src
+  ${CMAKE_SOURCE_DIR}
 )
 
 SET(CMAKE_FIND_LIBRARY_PREFIXES "lib")
@@ -31,11 +31,18 @@ message(STATUS CURRENT_DIR: ${CMAKE_CURRENT_LIST_DIR})
 set(LINKER_LIBS ${MXNET_LIBS})
 
 # -- OpenCV
-find_package(OpenCV COMPONENTS core highgui imgproc imgcodecs)
-if(NOT OpenCV_FOUND) # if not OpenCV 3.x, then imgcodecs are not found
-  message(STATUS "OpenCV imgcodecs missing")
-  find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc)
+if(NOT DEFINED OPENCV_DIR)
+    message(FATAL_ERROR "please set OPENCV_DIR with -DOPENCV_DIR=/path/opencv")
 endif()
+
+#find_package(OpenCV COMPONENTS core highgui imgproc imgcodecs)
+find_package(OpenCV REQUIRED PATHS ${OPENCV_DIR}/share/OpenCV NO_DEFAULT_PATH)
+
+#if(NOT OpenCV_FOUND) # if not OpenCV 3.x, then imgcodecs are not found
+#  message(STATUS "OpenCV imgcodecs missing")
+#  find_package(OpenCV REQUIRED COMPONENTS core highgui imgproc)
+#endif()
+
 include_directories(SYSTEM ${OpenCV_INCLUDE_DIRS})
 list(APPEND LINKER_LIBS ${OpenCV_LIBS})
 message(STATUS " OpenCV_LIBS=${OpenCV_LIBS}")
@@ -44,8 +51,11 @@ message(STATUS "OpenCV ${OpenCV_VERSION} found (${OpenCV_CONFIG_PATH})")
 # -- Targets and Installation
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR})
 
-add_executable(gluon-ocr ./src)
-target_link_libraries(gluoncv-detect ${LINKER_LIBS})
+aux_source_directory(./src SRC)
+message(${SRC})
+add_executable(gluon-ocr ${SRC})
+
+target_link_libraries(gluon-ocr ${LINKER_LIBS})
 
 set(EXECS gluon-ocr)
 install(TARGETS ${EXECS} DESTINATION install)

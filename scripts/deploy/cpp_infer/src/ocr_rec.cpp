@@ -119,14 +119,14 @@ std::string CRNNRecognizer::PostProcess(NDArray pred_id, int blank){
     return words;
 }
 
-int main(){
-  std::cout<<"Hello gluon-ocr!"<<std::endl;
-  CRNNRecognizer rec("/home/sw/gluon-ocr/scripts/deploy/crnn-resnet34-symbol.json", 
-                     "/home/sw/gluon-ocr/scripts/deploy/crnn-resnet34-0000.params", 
-                     "/home/sw/demo/receipt_recognition/model/data/voc_dict_v1_7435.txt",
-                     1, 32, 1024, 1);
+// int main(){
+//   std::cout<<"Hello gluon-ocr!"<<std::endl;
+//   CRNNRecognizer rec("/home/sw/gluon-ocr/scripts/deploy/crnn-resnet34-symbol.json", 
+//                      "/home/sw/gluon-ocr/scripts/deploy/crnn-resnet34-0000.params", 
+//                      "/home/sw/demo/receipt_recognition/model/data/voc_dict_v1_7435.txt",
+//                      1, 32, 1024, 1);
     
-  cv::Mat image = cv::imread("/home/sw/demo/receipt_recognition/test_imgs/20200821165522.jpg", 1);
-  std::string text = rec.Run(image);
-  std::cout<<text<<std::endl;
-}
+//   cv::Mat image = cv::imread("/home/sw/demo/receipt_recognition/test_imgs/20200821165522.jpg", 1);
+//   std::string text = rec.Run(image);
+//   std::cout<<text<<std::endl;
+// }

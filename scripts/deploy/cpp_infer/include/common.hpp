@@ -40,21 +40,6 @@
 
 using namespace mxnet::cpp;
 
-inline std::vector<std::string> LoadDict(const std::string dict_path){
-    std::ifstream in(dict_path);
-    std::string line;
-    std::vector<std::string> m_vec;
-    if (in) {
-        while (getline(in, line)) {
-        m_vec.push_back(line);
-        }
-    } else {
-        std::cout << "no such label file: " << dict_path << std::endl;
-        exit(1);
-    }
-    return m_vec;
-}
-
 inline cv::Mat RotateImg(cv::Mat dst_img){
     cv::Mat srcCopy = cv::Mat(dst_img.rows, dst_img.cols, dst_img.depth());
     cv::transpose(dst_img, srcCopy);

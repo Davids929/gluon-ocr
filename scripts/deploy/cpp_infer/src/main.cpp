@@ -6,6 +6,7 @@
 void PrintUsage(){
     std::cout << "Usage:" << std::endl;
     std::cout << " <config file path>"<<std::endl
+              << "[--only_recog <Specify this option if recognize image patch>]"<<std::endl
               << "--gpu_id <runing gpu id>" <<std::endl
             //   << "--det_symbol <detect model symbol file in json format>  " << std::endl
             //   << "--det_params <detect model params file> " << std::endl
@@ -50,10 +51,17 @@ void RunDemo(std::string img_path, Config config){
     auto start = std::chrono::system_clock::now();
     std::vector<std::vector<std::vector<int>>> boxes;
     std::vector<std::string> texts;
-    
-    ocr_det.Run(image, boxes);
-    ocr_rec.Run(image, boxes, texts);
+    if (config.only_recog){
+        std::string text = ocr_rec.Run(image);
+    }    
+    else{
+        ocr_det.Run(image, boxes);
+        ocr_rec.Run(image, boxes, texts);
+    }
     auto end = std::chrono::system_clock::now();
+    std::cout<<"cost time:"<<std::chrono::duration<double, std::milli>(end - start).count()/1000<<" s"<<std::endl;
+    viz::PlotRect(image, boxes);
+    cv::imwrite("./results.jpg", image);
 }
 
 int main(int argc, char **argv){
@@ -69,7 +77,9 @@ int main(int argc, char **argv){
     index++;
     
     while (index < argc) {
-        if (strcmp("--gpu_id", argv[index]) == 0) {
+        if (strcmp("--only_recog", argv[index]) == 0) {
+            config.only_recog = true;
+        }else if (strcmp("--gpu_id", argv[index]) == 0) {
             index++;
             config.gpu_id = std::stoi(index < argc ? argv[index]:"-1");
         //detect model config
@@ -126,7 +136,7 @@ int main(int argc, char **argv){
         }
         index++;
     }
-    std::cout<<config.gpu_id <<std::endl;
+    
     if (image_path.empty()) {
         std::cout << "ERROR: Path to the input image is not specified."<<std::endl;
         return 1;
@@ -140,5 +150,5 @@ int main(int argc, char **argv){
     }
     
     RunDemo(image_path, config);
-
+return 0;
 }

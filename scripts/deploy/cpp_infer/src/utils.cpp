@@ -32,7 +32,7 @@ std::vector<std::string> ReadFile(const std::string dict_path){
             m_vec.push_back(line);
         }
     } else {
-        std::cout << "no such label file: " << dict_path << std::endl;
+        std::cout << "no such file: " << dict_path << std::endl;
         exit(1);
     }
     return m_vec;
@@ -53,4 +53,42 @@ std::map<std::string, std::string> LoadConfig(const std::string &config_path){
       dict[res[0]] = res[1];
   }
   return dict;
+}
+
+
+
+//Transformation of two-dimensional matrix into vector.
+std::vector<std::vector<float>> Mat2Vector(cv::Mat mat){
+    std::vector<std::vector<float>> img_vec;
+    std::vector<float> tmp;
+
+    for (int i = 0; i < mat.rows; ++i) {
+        tmp.clear();
+        for (int j = 0; j < mat.cols; ++j) {
+        tmp.push_back(mat.at<float>(i, j));
+        }
+        img_vec.push_back(tmp);
+    }
+    return img_vec;
+}
+
+
+//Sorts the four points of the rectangle clockwise
+std::vector<std::vector<int>> 
+OrderPointsClockwise(std::vector<std::vector<int>> pts) {
+  std::vector<std::vector<int>> box = pts;
+  std::sort(box.begin(), box.end(), Xsort<int>);
+
+  std::vector<std::vector<int>> leftmost = {box[0], box[1]};
+  std::vector<std::vector<int>> rightmost = {box[2], box[3]};
+
+  if (leftmost[0][1] > leftmost[1][1])
+    std::swap(leftmost[0], leftmost[1]);
+
+  if (rightmost[0][1] > rightmost[1][1])
+    std::swap(rightmost[0], rightmost[1]);
+
+  std::vector<std::vector<int>> rect = {leftmost[0], rightmost[0], rightmost[1],
+                                        leftmost[1]};
+  return rect;
 }

@@ -2,23 +2,18 @@
 import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
+from ...nn.rnn_layer import RNNLayer
 
 class AttEncoder(nn.HybridBlock):
-    def __init__(self, stages, hidden_dim=256, num_layers=2,
+    def __init__(self, stages, hidden_size=256, num_layers=2,
                  match_dim=512, dropout=0.1, rnn_type='lstm',
                  **kwargs):
 
         super(AttEncoder, self).__init__(**kwargs)
         with self.name_scope():
             self.stages = stages
-            if rnn_type.lower() == 'lstm':
-                self.rnn = gluon.rnn.LSTM(hidden_size=hidden_dim, num_layers=num_layers,
-                                             dropout=dropout, bidirectional=True, layout='NTC')
-            elif rnn_type.lower() == 'gru':
-                self.rnn = gluon.rnn.GRU(hidden_size=hidden_dim, num_layers=num_layers,
-                                             dropout=dropout, bidirectional=True, layout='NTC')
-            else:
-                raise ValueError('The rnn type is fault!')
+            self.rnn = RNNLayer(rnn_type, num_layers, hidden_size, dropout=dropout, 
+                                bidirectional=True, layout='NTC')
             self.pre_compute = nn.Dense(match_dim, activation='tanh', flatten=False)
 
     def hybrid_forward(self, F, x, mask):
@@ -27,9 +22,9 @@ class AttEncoder(nn.HybridBlock):
         x = F.transpose(x, axes=(0, 3, 2, 1))
         x = F.reshape(x, shape=(0, -3, 0))
         mask = F.transpose(mask, axes=(0, 1, 3, 2))
-        mask = F.reshape(mask, shape=(0, 0, -1))
+        mask = F.reshape(mask, shape=(0, -1))
         
-        output = self.rnn(x)
+        output, state = self.rnn(x, mask=mask)
         out_proj = self.pre_compute(output)
         return output, out_proj, mask
 

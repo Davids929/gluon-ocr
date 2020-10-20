@@ -3,10 +3,11 @@ import mxnet as mx
 from mxnet import gluon
 from mxnet.gluon import nn
 from ...nn import STN
+from ...nn.rnn_layer import RNNLayer
 
 class CRNN(nn.HybridBlock):
     def __init__(self, stages, hidden_size=256, num_layers=2, dropout=0.1, 
-                 voc_size=37, use_bilstm=True, use_stn=False, **kwargs):
+                 voc_size=37, birnn=True, use_stn=False, **kwargs):
         super(CRNN, self).__init__(**kwargs)
         
         self.use_stn = use_stn
@@ -14,8 +15,13 @@ class CRNN(nn.HybridBlock):
             self.stages = stages
             if use_stn:
                 self.stn = STN()
-            self.lstm = gluon.rnn.LSTM(hidden_size, num_layers, layout='NTC',
-                                    dropout=dropout, bidirectional=use_bilstm)
+            
+            self.lstm = RNNLayer('lstm', num_layers, 
+                                 hidden_size, dropout=dropout, 
+                                 bidirectional=birnn, layout='NTC')
+            # self.lstm = gluon.rnn.LSTM(hidden_size, num_layers, 
+            #                      dropout=dropout, 
+            #                      bidirectional=birnn, layout='NTC')
             self.dropout = nn.Dropout(dropout)
             self.fc   = nn.Dense(voc_size, flatten=False)
 
@@ -26,7 +32,7 @@ class CRNN(nn.HybridBlock):
         x = self.stages(x)
         x = F.transpose(x, axes=(0, 3, 2, 1))
         x = F.reshape(x, (0, -3, 0))
-        x = self.lstm(x)
+        x, _ = self.lstm(x)
         x = self.dropout(x)
         x = self.fc(x)
         return x
@@ -36,11 +42,12 @@ class CRNN(nn.HybridBlock):
             ctx = [ctx]
         data = mx.nd.ones((1, 3, 32, 320), dtype='float32', ctx=ctx[0])
         self.load_parameters(param_path)
+        #self.initialize()
         self.hybridize()
         self.collect_params().reset_ctx(ctx)
         pred1 = self(data)
         self.export(prefix, epoch=0)
-        print('Successfully export model!')
+        print('Export model Successfully!')
     
 
 def get_crnn(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),

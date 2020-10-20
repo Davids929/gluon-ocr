@@ -246,7 +246,7 @@ class CLRS(nn.HybridBlock):
         self.collect_params().reset_ctx(ctx)
         pred1 = self(data)
         self.export(prefix, epoch=0)
-        print('Successfully export model!')
+        print('Export model successfully !')
 
 def get_clrs(backbone_name, num_layers, 
              norm_layer=nn.BatchNorm, norm_kwargs=None,

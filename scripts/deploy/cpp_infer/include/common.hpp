@@ -47,6 +47,15 @@ inline cv::Mat RotateImg(cv::Mat dst_img){
     return srcCopy;
 }
 
+inline void Permute(const cv::Mat *img, float *data){
+    int rh = img->rows;
+    int rw = img->cols;
+    int rc = img->channels();
+    for (int i = 0; i < rc; ++i) {
+        cv::extractChannel(*img, cv::Mat(rh, rw, CV_32FC1, data + i * rh * rw), i);
+    }
+}
+
 // resize short within
 inline cv::Mat ResizeShortWithin(cv::Mat src, int short_size, int max_size, int mult_base, bool fix_height) {
     double h = src.rows;
@@ -97,27 +106,21 @@ inline NDArray AsData(cv::Mat bgr_image, Context ctx = Context::cpu(), bool norm
     // convert BGR image from OpenCV to RGB in MXNet.
     cv::Mat rgb_image;
     cv::cvtColor(bgr_image, rgb_image, cv::COLOR_BGR2RGB);
-    // convert to float32 from uint8
     
     if (norm) {
         Normalize(&rgb_image);
     }else{
+        // convert to float32 from uint8
         rgb_image.convertTo(rgb_image, CV_32FC3);
     }
     int height = rgb_image.rows;
     int width  = rgb_image.cols;
     int channels = rgb_image.channels();
     // a vector of raw pixel values, no copy
-    std::vector<float> data_buffer;
-    for (int c = 0; c < channels; ++c) {
-        for (int i = 0; i < height; ++i) {
-            for (int j = 0; j < width; ++j) {
-                data_buffer.push_back(static_cast<float>(rgb_image.data[(i * height + j) * 3 + c]));
-            }
-        }
-  }
+    std::vector<float> data_buffer(channels*height*width, 0.0f);
+    // 
+    Permute(&rgb_image, data_buffer.data());
     // construct NDArray from data buffer
-
     return NDArray(data_buffer, Shape(1, channels, height, width), ctx);
 }
 
@@ -264,4 +267,20 @@ inline cv::Mat PlotBbox(cv::Mat img, NDArray bboxes, NDArray scores, NDArray lab
     }
     return img;
 }
+
+inline void PlotRect(cv::Mat &img, std::vector<std::vector<std::vector<int>>> boxes){
+    int num = boxes.size();
+    for (int i=0; i<num; i++){
+        cv::Point2i pt1(boxes[i][0][0], boxes[i][0][1]);
+        cv::Point2i pt2(boxes[i][1][0], boxes[i][1][1]);
+        cv::Point2i pt3(boxes[i][2][0], boxes[i][2][1]);
+        cv::Point2i pt4(boxes[i][3][0], boxes[i][3][1]);
+        cv::Scalar color(255, 0, 0);
+        cv::line(img, pt1, pt2, color, 2);
+        cv::line(img, pt2, pt3, color, 2);
+        cv::line(img, pt3, pt4, color, 2);
+        cv::line(img, pt4, pt1, color, 2);
+    }
+}
+
 }  // namespace viz

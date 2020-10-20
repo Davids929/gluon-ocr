@@ -14,13 +14,21 @@ class AttModel(nn.HybridBlock):
             self.encoder = encoder
             self.decoder = decoder
 
-    def hybrid_forward(self, F, x, mask, targ_input, h, c):
+    def hybrid_forward(self, F, x, mask, targ_input):
+
+        if isinstance(x, mx.ndarray.NDArray):
+            batch_size = x.shape[0]
+            state = self.begin_state(func=mx.ndarray.zeros, ctx=x.context, 
+                                     batch_size=batch_size, dtype=x.dtype)
+        else:
+            state = self.begin_state(func=mx.symbol.zeros)
+
         en_out, en_proj, mask = self.encoder(x, mask)
-        states = [en_out, en_proj, mask, h, c]
+        states = [en_out, en_proj, mask, state]
         tag_input = F.transpose(targ_input, axes=(1, 0)).expand_dims(axis=-1)
 
         def train_func(out, states):
-            outs = self.decoder(out, *states)
+            outs = self.decoder(out, states)
             return outs[0], outs[1:]
 
         if mx.autograd.is_training():
@@ -44,25 +52,26 @@ class AttModel(nn.HybridBlock):
         outputs = F.transpose(outputs, axes=(1, 0))
         return outputs
 
+    def __call__(self, data, mask, targ_input, **kwargs):
+    
+        return super(AttModel, self).__call__(data, mask, targ_input, **kwargs)
+
     def export_block(self, prefix, param_path, ctx=mx.cpu()):
         if not isinstance(ctx, list):
             ctx = [ctx]
         data = mx.nd.ones((1, 3, 32, 128), ctx=ctx[0])
         mask = mx.nd.ones((1, 1, 1, 16), ctx=ctx[0])
-        states = self.begin_state(1, ctx[0])
+        targ_input = mx.nd.ones((1, 10), ctx=ctx[0])
         self.hybridize()
-        self.load_parameters(param_path)
+        #self.load_parameters(param_path)
+        self.initialize()
         self.collect_params().reset_ctx(ctx)
-        outs = self(data, mask, *states)
+        outs = self.__call__(data, mask, targ_input)
         self.export(prefix)
         print('Export model successfully.')
 
-    def begin_state(self, *args):
-        return self.decoder.begin_state(*args)
-
-    def begin_inp(self, batch_size, out_len, ctx):
-        inp = mx.nd.ones(shape=(batch_size, out_len), dtype='float32', ctx=ctx)
-        return inp
+    def begin_state(self, **kwargs):
+        return self.decoder.lstm.begin_state(**kwargs)
 
 def get_att_model(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
                   norm_layer=nn.BatchNorm, norm_kwargs=None, start_symbol=0, end_symbol=1, 

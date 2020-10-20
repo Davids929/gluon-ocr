@@ -33,8 +33,8 @@ void CRNNRecognizer::InitModel(){
 };
 
 std::string CRNNRecognizer::Run(cv::Mat &image){
-    cv::Mat rotate_img = RotateImg(image);
-    cv::Mat resize_img = ResizeShortWithin(rotate_img, this->short_side_, this->max_side_len_, 8, true);
+    
+    cv::Mat resize_img = ResizeShortWithin(image, this->short_side_, this->max_side_len_, 8, true);
     int img_h = resize_img.rows;
     int img_w = resize_img.cols;
     int bucket_key = GetBucketKey(img_w);
@@ -43,7 +43,7 @@ std::string CRNNRecognizer::Run(cv::Mat &image){
                        cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
     }
     NDArray data = AsData(resize_img, this->ctx_);
-    
+    std::cout<<"current bucket key:"<<bucket_key<<std::endl;
     Executor* exec = this->exec_buckets_[bucket_key];
     data.CopyTo(&(exec->arg_dict()["data"]));
     // begin forward
@@ -57,8 +57,8 @@ std::string CRNNRecognizer::Run(cv::Mat &image){
     NDArray pred;
     Operator("argmax")(output, 2).Invoke(pred);
     std::vector<unsigned int> out_shape = pred.GetShape();
-    std::cout<<"out dim:"<<out_shape[1]<< "voc size:"<<this->voc_size_<<std::endl;
-    std::string text = PostProcess(pred, this->voc_size_);
+    //std::cout<<"out dim:"<<out_shape[1]<< "voc size:"<<this->voc_size_<<std::endl;
+    std::string text = "123";//PostProcess(pred, this->voc_size_);
     return text;
 }
 
@@ -66,9 +66,14 @@ void CRNNRecognizer::Run(cv::Mat &img, std::vector<std::vector<std::vector<int>>
                          std::vector<std::string> &texts){
     cv::Mat crop_img;
     for (int i=0; i<boxes.size(); i++){
+        auto t1 = std::chrono::system_clock::now();
         crop_img = GetRotateCropImage(img, boxes[i]);
+        auto t2 = std::chrono::system_clock::now();
         std::string text = Run(crop_img);
+        auto t3 = std::chrono::system_clock::now();
         texts.push_back(text);
+        std::cout<<"crop image cost time:"<<std::chrono::duration<double, std::milli>(t2 - t1).count()/1000<<" s";
+        std::cout<<" recog cost time:"<<std::chrono::duration<double, std::milli>(t3 - t2).count()/1000<<" s"<<std::endl;
     }    
 }
 
@@ -83,21 +88,24 @@ cv::Mat CRNNRecognizer::GetRotateCropImage(const cv::Mat &image,
     cv::Point2f pts_dst[4];
     pts_dst[0] = cv::Point2f(0, 0);
     pts_dst[1] = cv::Point2f(crop_width, 0);
-    pts_dst[0] = cv::Point2f(crop_width, crop_height);
-    pts_dst[0] = cv::Point2f(0, crop_height);
+    pts_dst[2] = cv::Point2f(0, crop_height);
+    pts_dst[3] = cv::Point2f(crop_width, crop_height);
 
     cv::Point2f pts_src[4];
     pts_src[0] = cv::Point2f(box[0][0], box[0][1]);
     pts_src[1] = cv::Point2f(box[1][0], box[1][1]);
-    pts_src[2] = cv::Point2f(box[2][0], box[2][1]);
-    pts_src[3] = cv::Point2f(box[3][0], box[3][1]);
+    pts_src[2] = cv::Point2f(box[3][0], box[3][1]);
+    pts_src[3] = cv::Point2f(box[2][0], box[2][1]);
 
     cv::Mat M = cv::getPerspectiveTransform(pts_src, pts_dst);
     cv::Mat img_crop;
     cv::warpPerspective(image, img_crop, M,
                       cv::Size(crop_width, crop_height),
                       cv::BORDER_REPLICATE);
-    return img_crop;
+    if (float(img_crop.rows)>float(img_crop.cols)*1.5)
+        return RotateImg(img_crop);
+    else
+        return img_crop;
 }
 
 int CRNNRecognizer::GetBucketKey(int img_w){
@@ -109,7 +117,7 @@ int CRNNRecognizer::GetBucketKey(int img_w){
 
 std::string CRNNRecognizer::PostProcess(NDArray pred_id, int blank){
     int pred_len = pred_id.GetShape()[1];
-    std::string words;
+    std::string words="";
     for (int i=0; i<pred_len; i++){
         if (pred_id.At(0, i) != blank){
             if (i>0 && pred_id.At(0, i-1) == pred_id.At(0, i)) continue;

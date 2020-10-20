@@ -3,7 +3,8 @@
 
 void DBDetector::Run(cv::Mat &image, std::vector<std::vector<std::vector<int>>> &boxes){
       // set input and bind executor
-      auto data = AsData(image, ctx_);
+      cv::Mat resized_img = ResizeShortWithin(image, this->min_side_len_, this->max_side_len_, 32, false);
+      auto data = AsData(resized_img, ctx_);
       auto input_shape = data.GetShape();
       this->args_map_["data"] = data;
       this->exec_ = net_.SimpleBind(
@@ -19,18 +20,25 @@ void DBDetector::Run(cv::Mat &image, std::vector<std::vector<std::vector<int>>> 
       int h = input_shape[2];
       int w = input_shape[3];
       int n = h * w;
-      std::vector<float> out_data(n, 0.0);
+      pred = pred.Reshape(Shape(n));
+      
+      std::vector<float> out_data;
       pred.SyncCopyToCPU(&out_data, n);
-
-      cv::Mat pred_map(h, w, CV_32F, (float *)out_data.data());
-
-      cv::Mat bina_map;
-      cv::threshold(pred_map, bina_map, this->thresh_, 1, cv::THRESH_BINARY);
-      bina_map.convertTo(bina_map, CV_8UC1);
+      cv::Mat pred_map(h, w, CV_32F, out_data.data());
+      
+      cv::Mat bina_map, pred_img;
+      pred_img = pred_map*255;
+      pred_img.convertTo(pred_img, CV_8UC1);
+      
+      double thresh = double(this->thresh_*255);
+      cv::threshold(pred_img, bina_map, thresh, 255, cv::THRESH_BINARY);
+      
+      cv::imwrite("./bina_map.jpg", bina_map);
       boxes = this->post_process_.BoxesFromBitmap(
             pred_map, bina_map, this->box_thresh_, this->unclip_ratio_);
       int origin_h = image.rows;
       int origin_w = image.cols;
+      std::cout<< "boxes number :"<<boxes.size()<<std::endl;
       GetOriginScaleBox(boxes, origin_h, origin_w, h, w);
 }
 
@@ -48,7 +56,6 @@ void DBDetector::GetOriginScaleBox(std::vector<std::vector<std::vector<int>>> &b
            boxes[i][j][1] = clamp(y, 0, origin_h);
         }
     }
-
 }
 
 // int main(){

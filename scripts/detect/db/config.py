@@ -11,10 +11,10 @@ def parse_args():
                         help='')
     parser.add_argument('--dataset-name', type=str, default='icdar15',
                         help='The name of training dataset.')
-    parser.add_argument('--train-img-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_img')
-    parser.add_argument('--train-lab-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_lab')
-    parser.add_argument('--val-img-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_img')
-    parser.add_argument('--val-lab-dir', type=str, default='/home/idcard/data/receipts/detect_data/test_lab')
+    parser.add_argument('--train-img-dir', type=str)
+    parser.add_argument('--train-lab-dir', type=str)
+    parser.add_argument('--val-img-dir', type=str)
+    parser.add_argument('--val-lab-dir', type=str)
     parser.add_argument('--data-shape', type=int, default=640,
                         help="Input data shape, use 640.")
     

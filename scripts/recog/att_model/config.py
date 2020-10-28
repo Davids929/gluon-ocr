@@ -19,7 +19,10 @@ def parse_args():
     parser.add_argument('--fix-width', type=int, default=384,
                         help='The width of image in training.')
     parser.add_argument('--short-side', type=int, default=32,
-                        help='The height of image in training.')  
+                        help='The height of image in training.')
+    parser.add_argument('--train-data-path', type=str, help='Image list of training.')
+    parser.add_argument('--val-data-path', type=str, help='Image list of val.')
+    
     parser.add_argument('--bucket-mode', action='store_true',
                         help='Use bucket train model.')        
     parser.add_argument('--num-workers', '-j', dest='num_workers', type=int,
@@ -72,14 +75,8 @@ def parse_args():
                         help='export model')
 
     args = parser.parse_args()
-    args.voc_path    = '/home/idcard/demo/text_recognition/data/voc_dict_v1_7435.txt'
-    #args.train_data_path = ['/home/idcard/data/receipts/val_lines.txt']
-    args.train_data_path = ['/home/idcard/data/receipts/train_lines.txt',
-                            '/home/idcard/data/receipts/baidu_lines.txt',
-                            '/home/idcard/data/receipts/concat_lines.txt',
-                            '/home/idcard/data/invoice/train_lines.txt',
-                            '/home/idcard/data/invoice/concat_lines.txt']
-    args.val_data_path   = ['/home/idcard/data/receipts/val_lines.txt']
+    args.train_data_path = args.train_data_path.split(',')
+    args.val_data_path   = args.val_data_path.split(',')
     return args
 
 args = parse_args()

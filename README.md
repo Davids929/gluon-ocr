@@ -17,7 +17,7 @@ Gluon-OCR provides implementations of deep learning models in text detection and
     - [Text Recognition](./doc/recognition.md)
     - [End2End](#END2END)
 - Deployment
-    - [Python Inference](#PYTHONINFERENCE)
+    - [Python Inference](./scripts/deploy/python_infer/readme.md)
     - [C++ Inference](./scripts/deploy/cpp_infer/readme.md)
 - Datasets
     - [General OCR Datasets(Chinese/English)](https://github.com/PaddlePaddle/PaddleOCR/tree/develop/doc/doc_en/datasets_en.md)

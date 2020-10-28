@@ -48,6 +48,7 @@ void RunDemo(std::string img_path, Config config){
                            config.rec_max_side_len,
                            config.rec_short_side,
                            config.num_buckets);
+
     auto start = std::chrono::system_clock::now();
     std::vector<std::vector<std::vector<int>>> boxes;
     std::vector<std::string> texts;
@@ -60,8 +61,10 @@ void RunDemo(std::string img_path, Config config){
     }
     auto end = std::chrono::system_clock::now();
     std::cout<<"cost time:"<<std::chrono::duration<double, std::milli>(end - start).count()/1000<<" s"<<std::endl;
-    viz::PlotRect(image, boxes);
-    cv::imwrite("./results.jpg", image);
+    if (config.visualize){
+        viz::PlotRect(image, boxes);
+        cv::imwrite("./results.jpg", image);
+    }
 }
 
 int main(int argc, char **argv){

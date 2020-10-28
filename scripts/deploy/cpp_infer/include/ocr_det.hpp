@@ -42,9 +42,7 @@ class DBDetector{
             if (gpu_id >= 0){
                 this->ctx_ = Context::gpu(gpu_id);
             }
-
             LoadCheckpoint(model_path, params_path, &net_, &args_map_, &auxs_map_, this->ctx_);
-
         };
 
         void Run(cv::Mat &img, std::vector<std::vector<std::vector<int>>> &boxes);

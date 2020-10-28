@@ -16,6 +16,7 @@ void CRNNRecognizer::InitModel(){
                                    std::map<std::string, NDArray>(),
                                    std::map<std::string, OpReqType>(),
                                    this->auxs_map_);
+
     Executor *master_executor = this->net_.Bind(this->ctx_, arg_arrays, grad_arrays, 
                                                 grad_reqs, aux_arrays,
                                                 std::map<std::string, Context>(), nullptr);
@@ -40,10 +41,10 @@ std::string CRNNRecognizer::Run(cv::Mat &image){
     int bucket_key = GetBucketKey(img_w);
     if (img_w < bucket_key){
         cv::copyMakeBorder(resize_img, resize_img, 0, 0, 0, bucket_key - img_w,
-                       cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
+                            cv::BORDER_CONSTANT, cv::Scalar(0, 0, 0));
     }
+    
     NDArray data = AsData(resize_img, this->ctx_);
-    std::cout<<"current bucket key:"<<bucket_key<<std::endl;
     Executor* exec = this->exec_buckets_[bucket_key];
     data.CopyTo(&(exec->arg_dict()["data"]));
     // begin forward
@@ -53,27 +54,33 @@ std::string CRNNRecognizer::Run(cv::Mat &image){
     NDArray output = exec->outputs[0].Copy(Context(kCPU, 0));
     NDArray::WaitAll();
     auto end = std::chrono::steady_clock::now();
-
     NDArray pred;
+    //Operator("softmax")(output, 2).Invoke(output);
     Operator("argmax")(output, 2).Invoke(pred);
-    std::vector<unsigned int> out_shape = pred.GetShape();
-    //std::cout<<"out dim:"<<out_shape[1]<< "voc size:"<<this->voc_size_<<std::endl;
-    std::string text = "123";//PostProcess(pred, this->voc_size_);
+    std::vector<unsigned int> out_shape = output.GetShape();
+    int pred_len = out_shape[1];
+    pred = pred.Reshape(Shape(pred_len));
+      
+    std::vector<float> out_data;
+    pred.SyncCopyToCPU(&out_data, pred_len);
+    std::string text = PostProcess(out_data, this->voc_size_);
+    //std::cout<<text<<std::endl;
     return text;
 }
 
 void CRNNRecognizer::Run(cv::Mat &img, std::vector<std::vector<std::vector<int>>> &boxes, 
                          std::vector<std::string> &texts){
     cv::Mat crop_img;
-    for (int i=0; i<boxes.size(); i++){
-        auto t1 = std::chrono::system_clock::now();
+    int index = 1;
+    std::cout<<"result of recognition:"<<std::endl;
+    for (int i=boxes.size()-1; i>=0; i--){
         crop_img = GetRotateCropImage(img, boxes[i]);
         auto t2 = std::chrono::system_clock::now();
         std::string text = Run(crop_img);
         auto t3 = std::chrono::system_clock::now();
         texts.push_back(text);
-        std::cout<<"crop image cost time:"<<std::chrono::duration<double, std::milli>(t2 - t1).count()/1000<<" s";
-        std::cout<<" recog cost time:"<<std::chrono::duration<double, std::milli>(t3 - t2).count()/1000<<" s"<<std::endl;
+        std::cout<<index<<" : "<<text<<",  recog cost time:"<<std::chrono::duration<double, std::milli>(t3 - t2).count()/1000<<"s"<<std::endl;
+        index++;
     }    
 }
 
@@ -115,13 +122,16 @@ int CRNNRecognizer::GetBucketKey(int img_w){
     return this->bucket_keys_.back();
 }
 
-std::string CRNNRecognizer::PostProcess(NDArray pred_id, int blank){
-    int pred_len = pred_id.GetShape()[1];
-    std::string words="";
+std::string CRNNRecognizer::PostProcess(std::vector<float> &pred_id, int blank){
+    int pred_len = pred_id.size();
+    std::string words = "";
     for (int i=0; i<pred_len; i++){
-        if (pred_id.At(0, i) != blank){
-            if (i>0 && pred_id.At(0, i-1) == pred_id.At(0, i)) continue;
-            else words = words + this->voc_dict_[pred_id.At(0, i)];
+        if (int(pred_id[i]) != blank){
+            if (i>0 && int(pred_id[i-1]) ==int(pred_id[i])){
+                continue;
+            }else{ 
+                words = words + this->voc_dict_[int(pred_id[i])];
+            }
         }
     }
     return words;

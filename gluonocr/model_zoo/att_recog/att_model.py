@@ -70,8 +70,8 @@ class AttModel(nn.HybridBlock):
         self.export(prefix)
         print('Export model successfully.')
 
-    def begin_state(self, **kwargs):
-        return self.decoder.lstm.begin_state(**kwargs)
+    def begin_state(self, *args, **kwargs):
+        return self.decoder.lstm.begin_state(*args, **kwargs)
 
 def get_att_model(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
                   norm_layer=nn.BatchNorm, norm_kwargs=None, start_symbol=0, end_symbol=1, 

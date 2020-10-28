@@ -10,13 +10,27 @@ class AttEncoder(nn.HybridBlock):
                  **kwargs):
 
         super(AttEncoder, self).__init__(**kwargs)
+        assert rnn_type.lower() in ('gru', 'lstm')
         with self.name_scope():
             self.stages = stages
-            self.rnn = RNNLayer(rnn_type, num_layers, hidden_size, dropout=dropout, 
-                                bidirectional=True, layout='NTC')
+            # self.rnn = RNNLayer(rnn_type, num_layers, hidden_size, dropout=dropout, 
+            #                     bidirectional=True, layout='NTC')
+            if rnn_type.lower() == 'gru':
+                self.rnn = gluon.rnn.GRU(hidden_size, num_layers, dropout=dropout, 
+                                         bidirectional=True, layout='NTC')
+            else:
+                self.rnn = gluon.rnn.LSTM(hidden_size, num_layers, dropout=dropout, 
+                                         bidirectional=True, layout='NTC')
+            
             self.pre_compute = nn.Dense(match_dim, activation='tanh', flatten=False)
 
     def hybrid_forward(self, F, x, mask):
+        if isinstance(x, mx.ndarray.NDArray):
+            batch_size = x.shape[0]
+            state = self.begin_state(func=mx.ndarray.zeros, ctx=x.context, 
+                                     batch_size=batch_size, dtype=x.dtype)
+        else:
+            state = self.begin_state(func=mx.symbol.zeros)
         x = self.stages(x)
         x = F.broadcast_mul(x, mask)
         x = F.transpose(x, axes=(0, 3, 2, 1))
@@ -24,9 +38,12 @@ class AttEncoder(nn.HybridBlock):
         mask = F.transpose(mask, axes=(0, 1, 3, 2))
         mask = F.reshape(mask, shape=(0, -1))
         
-        output, state = self.rnn(x, mask=mask)
+        output = self.rnn(x)
         out_proj = self.pre_compute(output)
         return output, out_proj, mask
+    
+    def begin_state(self, *args, **kwargs):
+        return self.rnn.begin_state(*args, **kwargs)
 
 def get_encoder(backbone_name, num_layers, pretrained_base=False, ctx=mx.cpu(),
                 norm_layer=nn.BatchNorm, norm_kwargs=None, **kwargs):

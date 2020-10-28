@@ -78,5 +78,5 @@ class CRNNRecognizer{
         cv::Mat GetRotateCropImage(const cv::Mat &image, 
                                    std::vector<std::vector<int>> box);
         int GetBucketKey(int img_w);
-        std::string PostProcess(NDArray pred_id, int blank);
+        std::string PostProcess(std::vector<float> &pred_id, int blank);
 };

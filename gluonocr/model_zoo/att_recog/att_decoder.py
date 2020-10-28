@@ -18,8 +18,11 @@ class AttDecoder(nn.HybridBlock):
                                                 dropout=dropout)
             self.embedding = nn.Embedding(voc_size, embed_dim)
             
-            self.lstm    = RNNLayer('lstm', num_layers, 
-                                 hidden_size, dropout=dropout, 
+            # self.lstm    = RNNLayer('lstm', num_layers, 
+            #                      hidden_size, dropout=dropout, 
+            #                      bidirectional=bilstm, layout='NTC')
+            self.lstm = gluon.rnn.GRU(hidden_size, num_layers, 
+                                 dropout=dropout, 
                                  bidirectional=bilstm, layout='NTC')
 
             self.dropout = nn.Dropout(dropout)
@@ -30,7 +33,7 @@ class AttDecoder(nn.HybridBlock):
         mask = en_mask.expand_dims(axis=1)
         att_out, att_weight = self.attention(cur_input, en_proj, en_out, mask)
         lstm_in = F.concat(cur_input, att_out, dim=2)
-        lstm_out, state = self.lstm(lstm_in, state, mask=en_mask)
+        lstm_out, state = self.lstm(lstm_in, state)
         #lstm_out = F.concat(lstm_in, lstm_out, dim=2)
         output = self.dropout(lstm_out)
         output = self.fc(output)

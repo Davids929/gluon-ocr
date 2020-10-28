@@ -27,7 +27,7 @@ parser.add_argument('--thresh', type=float, default=0.3,
                     help='The threshold to replace it in the representers')
 parser.add_argument('--box-thresh', type=float, default=0.6,
                     help='The threshold to replace it in the representers')
-parser.add_argument('--visualize', type=bool, default=True, 
+parser.add_argument('--visualize', action='store_true',
                     help='visualize maps in tensorboard')
 parser.add_argument('--polygon', action='store_true',
                     help='output polygons if true')
@@ -40,7 +40,7 @@ std  = (0.229, 0.224, 0.225)
 
 class OCRModel(object):
     def __init__(self, args):
-        if args.gpu_id:
+        if args.gpu_id<0:
             self.ctx = mx.cpu()
         else:
             self.ctx = mx.gpu(int(args.gpu_id))

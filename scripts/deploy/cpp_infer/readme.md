@@ -1,6 +1,5 @@
 # C++ inference demo
-This is a demo application which illustrates how to use existing GluonCV models in c++ environments given exported JSON and PARAMS files. 
-Please checkout export for instructions of how to export pre-trained models.
+This is a demo application which illustrates how to use existing Gluon-OCR models in c++ environments given exported JSON and PARAMS files. 
 
 ## Build from source
 We will go through with cpu versions, gpu versions of mxnet are similar but requires USE_CUDA=1 and USE_CUDNN=1 (optional). See MXNet website if interested.
@@ -58,7 +57,7 @@ make -j $(nproc) USE_OPENCV=1 USE_BLAS=openblas USE_CPP_PACKAGE=1
 ```bash
 cd ~
 git clone https://github.com/Davids929/gluon-ocr.git
-cd gluon-ocr/scripts/deploy/cpp-infer
+cd gluon-ocr/scripts/deploy/cpp_infer
 mkdir build
 cd build
 cmake .. -DMXNET_ROOT=~/incubator-mxnet -DOPENCV_DIR=~/opencv3

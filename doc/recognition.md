@@ -1,8 +1,8 @@
-## TEXT RECOGNITION
+# TEXT RECOGNITION
 
 This section uses the icdar2015 dataset as an example to introduce the training, evaluation, and testing of the recognition model in Gluon-OCR.
 
-### DATA PREPARATION
+## Data preparation
 
 Downloading icdar2015 dataset from [official website](https://rrc.cvc.uab.es/?ch=4&com=downloads).
 
@@ -38,7 +38,7 @@ a
 
 `~/gluon-ocr/gluonocr/utils/ic15_dict.txt` is an English dictionary with 36 characters.
 
-### TRAINING
+## Training
 Training CRNN.
 ```shell
 cd gluon-ocr/scripts/recog/crnn
@@ -50,7 +50,7 @@ python train_crnn.py --network resnet --num-layers 34 --batch-size 300 --dataset
 --save-prefix ./checkpoint
 ```
 
-Export model
+## Export model
 ```shell
 cd gluon-ocr/scripts/recog/crnn
 python train_crnn.py --network resnet --num-layers 34 --batch-size 300 --dataset-name icdar15 \
@@ -68,7 +68,7 @@ gluon-ocr/scripts/recog/crnn/checkpoint will be generated two files, which are:
   └─ icdar15-resnet34-crnn-symbol.json          DBNet model file
 ```
 
-## TEST
+## Test
 Test the recognition result on a single image:
 ```shell
 cd gluon-ocr/scripts/recog/crnn

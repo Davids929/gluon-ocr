@@ -2,7 +2,7 @@
 
 This section uses the icdar2015 dataset as an example to introduce the training, evaluation, and testing of the detection model in Gluon-OCR.
 
-## DATA PREPARATION
+## Data preparation
 
 Downloading icdar2015 dataset from [official website](https://rrc.cvc.uab.es/?ch=4&com=downloads).
 
@@ -16,21 +16,21 @@ Decompress the downloaded dataset to the working directory, assuming it is decom
   └─ ch4_test_labels/             Testing label of icdar dataset
 ```
 
-## TRAINING
+## Training
 
 Training DBNet.
 ```shell
 cd gluon-ocr/scripts/detect/db
 python train_db.py --network resnet --num-layers 50 --dataset-name icdar15 \
---train-img-dir ../../../icdar2015/icdar_c4_train_imgs \
---train-lab-dir ../../../icdar2015/icdar_c4_train_labs \
---val-img-dir ../../../icdar2015/ch4_test_images \
---val-lab-dir ../../../icdar2015/ch4_test_labels \
+--train-img-dir ../../data/icdar2015/icdar_c4_train_imgs \
+--train-lab-dir ../../data/icdar2015/icdar_c4_train_labs \
+--val-img-dir ../../data/icdar2015/ch4_test_images \
+--val-lab-dir ../../data/icdar2015/ch4_test_labels \
 --data-shape 640 --batch-size 4 --num-workers 8 --gpus 1 --lr 0.001 \
 --save-prefix ./checkpoint
 ```
 
-Export model
+## Export model
 ```shell
 cd gluon-ocr/scripts/detect/db
 python train_db.py --network resnet --num-layers 50 --dataset-name icdar15 \
@@ -45,7 +45,7 @@ gluon-ocr/scripts/detect/db/checkpoint will be generated two files, which are:
 
 <!-- EVALUATION -->
 
-## TEST
+## Test
 Test the detection result on a single image:
 ```shell
 cd gluon-ocr/scripts/detect/db

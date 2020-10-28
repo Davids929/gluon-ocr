@@ -1,11 +1,11 @@
 # Gluon-OCR Toolkit
 Gluon-OCR provides implementations of deep learning models in text detection and recognition.
 
-# Supported Models
+## Supported Models
 - Various text detection algorithms: EAST, CLRS, DB
 - Various text recognition algorithms: CRNN, RARE
 
-# Tutorials
+## Tutorials
 - [Installation](./doc/installation.md)
 - [Quick Start](./doc/quickstart.md)
 - Algorithm introduction
@@ -26,7 +26,7 @@ Gluon-OCR provides implementations of deep learning models in text detection and
     - [Data Annotation Tools](https://github.com/PaddlePaddle/PaddleOCR/tree/develop/doc/doc_en/data_annotation_en.md)
     - [Data Synthesis Tools](https://github.com/PaddlePaddle/PaddleOCR/tree/develop/doc/doc_en/data_synthesis_en.md)
 
-# Reference
+## Reference
 [1]. https://github.com/PaddlePaddle/PaddleOCR \
 [2]. https://github.com/dmlc/gluon-cv \
 [3]. [EAST: an efficient and accurate scene text detector](https://arxiv.org/abs/1704.03155) \

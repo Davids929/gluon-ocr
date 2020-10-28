@@ -13,6 +13,8 @@ sudo apt-get update
 sudo apt-get install -y build-essential git
 # install openblas
 sudo apt-get install -y libopenblas-dev
+# install opencv
+sudo apt-get install -y libopencv-dev
 # install cmake
 sudo apt-get install -y cmake
 ```

@@ -21,8 +21,10 @@ parser.add_argument('--image-path', type=str, help='image path')
 parser.add_argument('--voc-path', type=str, help='the path of vocabulary.')
 parser.add_argument('--font-path', type=str, help='the path of font.')
 parser.add_argument('--result-dir', type=str, default='./demo_results/', help='path to save results')
-parser.add_argument('--min-scale', type=int, default=736)
-parser.add_argument('--max-scale', type=int, default=2048)
+parser.add_argument('--db-min-scale', type=int, default=736)
+parser.add_argument('--db-max-scale', type=int, default=1440)
+parser.add_argument('--crnn-short-scale', type=int, default=32)
+parser.add_argument('--crnn-max-scale', type=int, default=1024)
 parser.add_argument('--thresh', type=float, default=0.3,
                     help='The threshold to replace it in the representers')
 parser.add_argument('--box-thresh', type=float, default=0.6,
@@ -87,7 +89,7 @@ class OCRModel(object):
 
     def detect(self, img_np):
         origh_h, origin_w = img_np.shape[:2]
-        img_np = self.resize_image(img_np, min_scale=self.args.min_scale, max_scale=self.args.max_scale)
+        img_np = self.resize_image(img_np, min_scale=self.args.db_min_scale, max_scale=self.args.db_max_scale)
         img = mx.nd.array(img_np)
         img = mx.nd.image.to_tensor(img)
         img = mx.nd.image.normalize(img, mean=mean, std=std)
@@ -99,14 +101,20 @@ class OCRModel(object):
 
     def load_imgs(self, img_np, boxes):
         n = boxes.shape[0]
-        batchs = np.zeros((n, 32, self.args.max_scale, 3), dtype=np.uint8)
+        batchs = np.zeros((n, 32, self.args.crnn_max_scale, 3), dtype=np.uint8)
         w_list = []
         for i,box in enumerate(boxes):
             img = crop_patch(img_np, box)
-            img = self.resize_image(img, min_scale=32, min_divisor=4, max_scale=self.args.max_scale)
             h, w = img.shape[:2]
-            batchs[i, :, :w, :] = img
-            w_list.append(w)
+            if h>w*1.5:
+                img = np.rot90(img)
+                h, w = img.shape[:2]
+            new_w = int(w*32/h)
+            if new_w > self.args.crnn_max_scale:
+                new_w =  self.args.crnn_max_scale
+            img = cv2.resize(img, (new_w, self.args.crnn_short_side))
+            batchs[i, :, :new_w, :] = img
+            w_list.append(new_w)
         
         sort_ids = np.argsort(w_list)
         batchs = batchs[sort_ids]

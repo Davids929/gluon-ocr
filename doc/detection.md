@@ -51,6 +51,6 @@ Test the detection result on a single image:
 cd gluon-ocr/scripts/detect/db
 python demo.py --model-path ./checkpoint/icdar15-resnet50-db-symbol.json \
 --params-path ./checkpoint/icdar15-resnet50-db-0000.params --image-short-side 736 \
---image-path ./doc/imgs/img_10.jpg --thresh 0.3 --box-thresh 0.3 \
+--image-path ../../../doc/imgs/img_10.jpg --thresh 0.3 --box-thresh 0.3 \
 --gpu-id 0 --result-dir ./demo_results --visualize
 ```

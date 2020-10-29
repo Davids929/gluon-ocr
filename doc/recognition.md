@@ -74,7 +74,7 @@ Test the recognition result on a single image:
 cd gluon-ocr/scripts/recog/crnn
 python demo.py --model-path ./checkpoint/icdar15-resnet34-crnn-symbol.json \
 --params-path ./checkpoint/icdar15-resnet34-crnn-0000.params \
---voc-path gluonocr/utils/ic15_dict.txt \
---image-path ./doc/imgs/word_1.png \
+--voc-path ../../../gluonocr/utils/ic15_dict.txt \
+--image-path ../../../doc/imgs/word_1.png \
 --gpu-id 1 
 ```

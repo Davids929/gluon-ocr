@@ -20,19 +20,17 @@ parser.add_argument('--crnn-params-path', type=str, help='CRNN params file path.
 parser.add_argument('--image-path', type=str, help='image path')
 parser.add_argument('--voc-path', type=str, help='the path of vocabulary.')
 parser.add_argument('--font-path', type=str, help='the path of font.')
-parser.add_argument('--result-dir', type=str, default='./demo_results/', help='path to save results')
+parser.add_argument('--result-dir', type=str, default='./demo_results/', help='path to save results.')
 parser.add_argument('--db-min-scale', type=int, default=736)
 parser.add_argument('--db-max-scale', type=int, default=1440)
-parser.add_argument('--crnn-short-scale', type=int, default=32)
+parser.add_argument('--crnn-short-side', type=int, default=32)
 parser.add_argument('--crnn-max-scale', type=int, default=1024)
 parser.add_argument('--thresh', type=float, default=0.3,
-                    help='The threshold to replace it in the representers')
+                    help='The threshold to replace it in the representers.')
 parser.add_argument('--box-thresh', type=float, default=0.6,
-                    help='The threshold to replace it in the representers')
+                    help='The box threshold to replace it in the representers.')
 parser.add_argument('--visualize', action='store_true',
-                    help='visualize maps in tensorboard')
-parser.add_argument('--polygon', action='store_true',
-                    help='output polygons if true')
+                    help='visualize maps in tensorboard.')
 parser.add_argument('--gpu-id', type=int, default='0')
 
 img_types = ['jpg', 'png', 'jpeg', 'bmp']

@@ -126,15 +126,15 @@ class FixSizeDataset(Dataset):
         
         if img_np is None:
             return self.__getitem__(idx-1)
-        img_np   = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+        img_np   = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
         img_np   = self.image_resize(img_np, max_width=self.fix_width)
         if self.augment_fn is not None:
             img_np = self.augment_fn(img_np)
         h, w = img_np.shape[:2]
         img_nd   = mx.nd.array(img_np)
-        img_data = mx.nd.zeros((self.short_side, self.fix_width, 3), dtype='float32')
-        img_data[:h, :w, :] = img_nd
-        img_data = normalize_fn(img_data)
+        img_nd   = normalize_fn(img_nd)
+        img_data = mx.nd.zeros((1, self.short_side, self.fix_width), dtype='float32')
+        img_data[0, :h, :w] = img_nd
         img_mask = mx.nd.zeros((1, self.short_side, self.fix_width), dtype='float32')
         img_mask[:, :h, :w] = 1.0
         lab, lab_mask = self.text2ids(text, self.max_len)
@@ -196,10 +196,10 @@ class BucketDataset(FixSizeDataset):
         img_path = self.imgs_list[idx]
         text = self.labs_list[idx]
         img_np = cv2.imread(img_path)
+        img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
         inp_h, inp_w, lab_len = self._get_bucket_key(img_np.shape, len(text))
-        img_data = mx.nd.zeros(shape=(3, inp_h, inp_w), dtype='float32')
+        img_data = mx.nd.zeros(shape=(1, inp_h, inp_w), dtype='float32')
         img_mask = mx.nd.zeros(shape=(1, inp_h, inp_w), dtype='float32')
-        img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
         img_np = self.image_resize(img_np, max_width=self.max_width)
         
         h, w = img_np.shape[:2]
@@ -207,7 +207,7 @@ class BucketDataset(FixSizeDataset):
             img_np = self.augment_fn(img_np)
         img_nd = mx.nd.array(img_np) 
         img_nd = normalize_fn(img_nd)
-        img_data[:, :h, :w] = img_nd
+        img_data[0, :h, :w] = img_nd
         img_mask[:, :h, :w] = 1.0
         lab, lab_mask = self.text2ids(text, lab_len)
         if not self.add_symbol:

@@ -251,11 +251,7 @@ class CLRS(nn.HybridBlock):
 def get_clrs(backbone_name, num_layers, 
              norm_layer=nn.BatchNorm, norm_kwargs=None,
              pretrained_base=False, ctx=mx.cpu()):
-    # import sys, os
-    # sys.path.append(os.path.expanduser('~/demo/gluon-ocr/gluonocr/model_zoo'))
-    # from resnet import get_resnet
-    # from mobilenetv3 import get_mobilenet_v3
-    # from resnext import get_resnext
+    
     from ..resnet import get_resnet
     from ..mobilenetv3 import get_mobilenet_v3
     from ..resnext import get_resnext

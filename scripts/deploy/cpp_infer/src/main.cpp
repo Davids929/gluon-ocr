@@ -8,17 +8,17 @@ void PrintUsage(){
     std::cout << " <config file path>"<<std::endl
               << "[--only_recog <Specify this option if recognize image patch>]"<<std::endl
               << "--gpu_id <runing gpu id>" <<std::endl
-            //   << "--det_symbol <detect model symbol file in json format>  " << std::endl
-            //   << "--det_params <detect model params file> " << std::endl
+              << "--det_symbol <detect model symbol file in json format>  " << std::endl
+              << "--det_params <detect model params file> " << std::endl
               << "--db_thresh  <threshold of db detect model> " << std::endl
               << "--db_box_threshold <box threshold of db detect model> " << std::endl
               << "--db_unclip_ratio < unclip_ratio of db detect model> " << std::endl
               << "--det_max_side <max input side of detect model> " << std::endl
               << "--det_min_side <min input side of detect model> " << std::endl
 
-            //   << "--rec_symbol <recog model symbol file in json format>  " << std::endl
-            //   << "--rec_params <recog model params file> " << std::endl
-            //   << "--dict_path <vocabulary file> " << std::endl
+              << "--rec_symbol <recog model symbol file in json format>  " << std::endl
+              << "--rec_params <recog model params file> " << std::endl
+              << "--dict_path <vocabulary file> " << std::endl
               << "--rec_max_side <max input side of recog model> " << std::endl
               << "--rec_short_side <short side length of recog model> " << std::endl
               << "--num_buckets <bucket number> " << std::endl

@@ -10,7 +10,7 @@ from mxnet import nd
 from mxnet import gluon
 from mxnet.gluon.data import DataLoader
 from gluoncv import utils as gutils
-sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/gluon-ocr'))
 from gluonocr.model_zoo import get_att_model
 from gluonocr.data import FixSizeDataset, BucketDataset 
 from gluonocr.data import BucketSampler, Augmenter

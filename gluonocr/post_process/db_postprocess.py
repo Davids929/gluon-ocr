@@ -12,7 +12,7 @@ https://github.com/MhLiao/DB/blob/master/structure/representers/seg_detector_rep
 class DBPostProcess(object):
 
     def __init__(self, thresh=0.3, box_thresh=0.7, min_size=4, 
-                 min_area=40, scale_ratio=0.4, unclip_ratio=1.6, **kwargs):
+                 min_area=40, scale_ratio=0.4, unclip_ratio=1.8, **kwargs):
         self.thresh     = thresh
         self.box_thresh = box_thresh
         self.min_size   = min_size

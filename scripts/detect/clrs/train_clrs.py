@@ -14,7 +14,7 @@ from gluoncv import utils as gutils
 from gluoncv.data.batchify import Tuple, Stack, Pad 
 from gluoncv.utils.metrics.voc_detection import VOC07MApMetric
 
-sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/gluon-ocr'))
 from gluonocr.model_zoo import get_clrs
 from gluonocr.data import CLRSDataset, CLRSTrainTransform
 from gluonocr.data import PointAugmenter

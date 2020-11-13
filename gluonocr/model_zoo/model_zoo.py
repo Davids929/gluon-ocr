@@ -1,6 +1,14 @@
 
-from .att_recog import *
-
+from .resnet import *
+from .vgg import *
+from .mobilenetv3 import *
+from .resnext import *
+from .efficientnet import *
+from .crnn.crnn import *
+from .dbnet.db_net import *
+from .att_recog.att_model import *
+from .east.east import *
+from .clrs.clrs import *
 
 __all__ = ['get_model', 'get_model_list']
 

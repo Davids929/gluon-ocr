@@ -10,7 +10,7 @@ from mxnet import gluon
 from mxnet.gluon.data import DataLoader
 from gluoncv import utils as gutils 
 
-sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/gluon-ocr'))
 from gluonocr.model_zoo import get_db
 from gluonocr.data import DBDataset 
 from gluonocr.data import PointAugmenter
@@ -34,7 +34,7 @@ class Trainer(object):
             self.net = get_db(args.network, args.num_layers, pretrained_base=True) 
             self.async_net = self.net
 
-        model_name = '%s-resnet%d-db'%(args.dataset_name, args.num_layers)
+        model_name = '%s-%s%d-db'%(args.dataset_name, args.network, args.num_layers)
         
         if not os.path.exists(args.save_prefix):
             os.mkdir(args.save_prefix)

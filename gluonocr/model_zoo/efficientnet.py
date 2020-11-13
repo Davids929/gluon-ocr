@@ -95,7 +95,7 @@ class LinearBottleneck(nn.HybridBlock):
             if t != 1:
                 _add_conv(self.out,
                           in_channels * t,
-                          act_func='relu6',
+                          act_func='swish',
                           norm_layer=norm_layer, norm_kwargs=norm_kwargs)
             _add_conv(self.out,
                       in_channels * t,
@@ -103,7 +103,7 @@ class LinearBottleneck(nn.HybridBlock):
                       stride=stride,
                       pad=pad,
                       num_group=in_channels * t,
-                      act_func='relu6',
+                      act_func='swish',
                       norm_layer=norm_layer, norm_kwargs=norm_kwargs)
             if use_se:
                 self.out.add(_SE(in_channels * t))
@@ -137,7 +137,7 @@ class EfficientNet(nn.HybridBlock):
             norm_kwargs = {} if norm_kwargs is None else norm_kwargs
             self.features = nn.HybridSequential()
             _add_conv(self.features, make_divisible(32 * w_multiplier), kernel=3,
-                      stride=2, pad=1, act_func='relu6',
+                      stride=2, pad=1, act_func='swish',
                       norm_layer=norm_layer, norm_kwargs=norm_kwargs)
 
             for idx, (in_c, c, t, k, s, n) in enumerate(zip(in_channels_group, channels_group, 

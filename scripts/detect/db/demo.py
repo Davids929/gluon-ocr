@@ -7,7 +7,7 @@ import math
 import mxnet as mx
 from mxnet import gluon
 import sys
-sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/gluon-ocr'))
 from gluonocr.post_process import DBPostProcess
 
 parser = argparse.ArgumentParser(description='Text Detection inference.')
@@ -61,7 +61,8 @@ class Demo(object):
         return resized_img
         
     def load_image(self, image_path):
-        img = cv2.imread(image_path, cv2.IMREAD_COLOR).astype('float32')
+        img = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         original_shape = img.shape[:2]
         img = self.resize_image(img)
         img = mx.nd.array(img)
@@ -128,7 +129,6 @@ class Demo(object):
     def visualize(self, image_path, pred, boxes):
         
         original_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-        #original_image = np.rot90(original_image, 3)
         original_shape = original_image.shape
         pred_canvas = original_image.copy().astype(np.uint8)
         origin_h, origin_w = original_shape[:2]

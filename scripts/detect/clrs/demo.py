@@ -8,7 +8,7 @@ import mxnet as mx
 from mxnet import gluon
 import sys
 import time
-sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/gluon-ocr'))
 from gluonocr.post_process import CLRSPostProcess
 
 parser = argparse.ArgumentParser(description='Text Detection inference.')
@@ -62,7 +62,8 @@ class Demo(object):
         return resized_img
         
     def load_image(self, image_path):
-        img = cv2.imread(image_path, cv2.IMREAD_COLOR).astype('float32')
+        img = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         original_shape = img.shape[:2]
         img = self.resize_image(img)
         new_height, new_width = img.shape[:2]

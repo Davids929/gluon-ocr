@@ -19,7 +19,7 @@ class CRNN(nn.HybridBlock):
             # self.lstm = RNNLayer('lstm', num_layers, 
             #                      hidden_size, dropout=dropout, 
             #                      bidirectional=birnn, layout='NTC')
-            self.lstm = gluon.rnn.GRU(hidden_size, num_layers, 
+            self.lstm = gluon.rnn.LSTM(hidden_size, num_layers, 
                                  dropout=dropout, 
                                  bidirectional=birnn, layout='NTC')
             self.dropout = nn.Dropout(dropout)
@@ -41,8 +41,7 @@ class CRNN(nn.HybridBlock):
         if not isinstance(ctx, list):
             ctx = [ctx]
         data = mx.nd.ones((1, 3, 32, 320), dtype='float32', ctx=ctx[0])
-        #self.load_parameters(param_path)
-        self.initialize()
+        self.load_parameters(param_path)
         self.hybridize()
         self.collect_params().reset_ctx(ctx)
         pred1 = self(data)

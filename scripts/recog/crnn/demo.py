@@ -8,7 +8,7 @@ import math
 import time
 import mxnet as mx
 from mxnet import gluon
-sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/gluon-ocr'))
 
 parser = argparse.ArgumentParser(description='Text Recognition inference.')
 parser.add_argument('--model-path', type=str, help='model file path.')

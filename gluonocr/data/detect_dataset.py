@@ -54,8 +54,6 @@ class DBDataset(Dataset):
         return len(self.imgs_list)
     
     def __getitem__(self, idx):
-        # img_path = os.path.join(self.img_dir, self.imgs_list[idx])
-        # lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
         img_path, lab_path = self.imgs_list[idx], self.labs_list[idx]
         img_np   = cv2.imread(img_path)
         if img_np is None:
@@ -161,8 +159,6 @@ class EASTDataset(DBDataset):
         self.get_label.gen_geometry = True
 
     def __getitem__(self, idx):
-        # img_path = os.path.join(self.img_dir, self.imgs_list[idx])
-        # lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
         img_path, lab_path = self.imgs_list[idx], self.labs_list[idx]
         img_np   = cv2.imread(img_path)
         if img_np is None:
@@ -222,8 +218,6 @@ class CLRSDataset(DBDataset):
         return type(self).CLASSES
 
     def __getitem__(self, idx):
-        # img_path = os.path.join(self.img_dir, self.imgs_list[idx])
-        # lab_path = os.path.join(self.lab_dir, self.labs_list[idx])
         img_path, lab_path = self.imgs_list[idx], self.labs_list[idx]
         img_np   = cv2.imread(img_path)
         if img_np is None:

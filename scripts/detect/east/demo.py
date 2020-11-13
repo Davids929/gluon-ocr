@@ -67,8 +67,8 @@ class Demo(object):
         return resized_img
         
     def load_image(self, image_path):
-        img = cv2.imread(image_path, cv2.IMREAD_COLOR).astype('float32')
-        #img = np.rot90(img, 3)
+        img = cv2.imread(image_path, cv2.IMREAD_COLOR)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         original_shape = img.shape[:2]
         img = self.resize_image(img)
         img = mx.nd.array(img)

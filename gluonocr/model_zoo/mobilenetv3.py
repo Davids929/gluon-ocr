@@ -21,6 +21,8 @@
 
 from __future__ import division
 
+__all__ = ['get_mobilenet_v3', '_MobileNetV3']
+
 import numpy as np
 from mxnet.gluon import nn
 from mxnet.gluon.nn import BatchNorm

@@ -88,8 +88,9 @@ class Trainer(object):
                                   args.train_lab_dir,
                                   augment, mode='train',
                                   img_size=(args.data_shape, args.data_shape))
-        val_dataset  = DBDataset(args.train_img_dir, 
-                                 args.train_lab_dir, mode='val',
+        args.num_samples = len(train_dataset)
+        val_dataset  = DBDataset(args.val_img_dir, 
+                                 args.val_lab_dir, mode='val',
                                  img_size=(args.data_shape, args.data_shape))
 
         train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, 
@@ -101,22 +102,7 @@ class Trainer(object):
         return train_dataloader, val_dataloader
 
     def train(self):
-        if args.lr_decay_period > 0:
-            lr_decay_epoch = list(range(args.lr_decay_period, args.epochs, args.lr_decay_period))
-        else:
-            lr_decay_epoch = [int(i) for i in args.lr_decay_epoch.split(',')]
-        lr_decay_epoch = [e - args.warmup_epochs for e in lr_decay_epoch]
-        num_batches = args.num_samples // args.batch_size
-        lr_scheduler = gutils.LRSequential([
-            gutils.LRScheduler('linear', base_lr=0, target_lr=args.lr,
-                        nepochs=args.warmup_epochs, iters_per_epoch=num_batches),
-            gutils.LRScheduler(args.lr_mode, base_lr=args.lr,
-                        nepochs=args.epochs - args.warmup_epochs,
-                        iters_per_epoch=num_batches,
-                        step_epoch=lr_decay_epoch,
-                        step_factor=args.lr_decay, power=2),
-            ])
-
+        lr_scheduler = self.get_lr_scheduler()
         trainer = gluon.Trainer(self.net.collect_params(), 'sgd',
             {'wd': args.wd, 'momentum': args.momentum, 'lr_scheduler': lr_scheduler}) #
          # set up logger

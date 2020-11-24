@@ -67,7 +67,8 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=233,
                         help='Random seed to be fixed.')
     args = parser.parse_args()
-
+    args.train_img_dir = args.train_img_dir.split(',')
+    args.train_lab_dir = args.train_lab_dir.split(',')
     return args
 
 args = parse_args()

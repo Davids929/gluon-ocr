@@ -67,7 +67,7 @@ class PointAugmenter(MaskAugmenter):
 class RandomCropData(object):
     
     def __init__(self, size=(512, 512), keep_ratio=True, 
-                max_tries=20, min_crop_side_ratio=0.4,
+                max_tries=20, min_crop_side_ratio=0.6,
                 require_original_image=False):
         self.size = size
         self.keep_ratio = keep_ratio

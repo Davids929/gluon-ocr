@@ -63,7 +63,8 @@ class Demo(object):
         
     def load_data(self, image_path):
         img = cv2.imread(image_path, cv2.IMREAD_COLOR)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(img_np, cv2.COLOR_BGR2GRAY)
+        img = np.stack([img, img, img], axis=2)
         original_shape = img.shape[:2]
         img = self.resize_image(img)
         h, w = img.shape

@@ -1,6 +1,6 @@
 #coding=utf-8
+import os
 import argparse
-import imgaug.augmenters as iaa
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train CLRS.')
@@ -67,17 +67,11 @@ def parse_args():
                         help='Random seed to be fixed.')
 
     args = parser.parse_args()
-    args.augment_args = [['Fliplr', {'p':0.5}], 
-                         ['Flipud', {'p':0.3}],
-                         ['LinearContrast', {'alpha':(0.75, 1.5)}],
-                         ['GaussianBlur', {'sigma':(0.0, 2.0)}],
-                         ['Affine', {'rotate':[-10, 10]}],
-                         ['Resize', {'size':[1.0, 2.0]}],
-                         ]
-    # args.train_img_dir = '/home/idcard/data/mtwi_2018/image_train'
-    # args.train_lab_dir = '/home/idcard/data/mtwi_2018/txt_train'
-    # args.val_img_dir   = '/home/idcard/data/mtwi_2018/image_1000'
-    # args.val_lab_dir   = '/home/idcard/data/mtwi_2018/txt_1000'
+    
+    args.train_img_dir = [os.path.expanduser(path) for path in args.train_img_dir.split(',')]
+    args.train_lab_dir = [os.path.expanduser(path) for path in args.train_lab_dir.split(',')]
+    args.val_img_dir   = [os.path.expanduser(path) for path in args.val_img_dir.split(',')]
+    args.val_lab_dir   = [os.path.expanduser(path) for path in args.val_lab_dir.split(',')]
     return args
 
 args = parse_args()

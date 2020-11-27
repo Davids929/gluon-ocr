@@ -8,7 +8,7 @@ import math
 import time
 import mxnet as mx
 from mxnet import gluon
-sys.path.append(os.path.expanduser('~/demo/gluon-ocr'))
+sys.path.append(os.path.expanduser('~/gluon-ocr'))
 from gluonocr.post_process import EASTPostPocess
 
 parser = argparse.ArgumentParser(description='Text detection inference.')
@@ -80,10 +80,11 @@ class Demo(object):
         
     def inference(self, image, visualize=False):
         if os.path.isdir(image):
+            image = os.path.expanduser(image)
             file_list  = os.listdir(image)
             image_list = [os.path.join(image, i) for i in file_list if i.split('.')[-1].lower() in img_types]
         else:
-            image_list = [image]
+            image_list = [os.path.expanduser(image)]
         for image_path in image_list:
             img, origin_shape = self.load_image(image_path)
             origin_h, origin_w = origin_shape

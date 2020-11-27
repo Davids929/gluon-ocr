@@ -31,7 +31,7 @@ class Demo(object):
             self.ctx = mx.cpu()
         else:
             self.ctx = mx.gpu(int(args.gpu_id))
-        self.net = gluon.SymbolBlock.imports(args.model_path, ['data0', 'data1'],
+        self.net = gluon.SymbolBlock.imports(args.model_path, ['data'],
                                              args.params_path, ctx=self.ctx)
         self.word2id = self.load_voc(args.voc_path)
         self.words   = list(self.word2id.keys())
@@ -85,10 +85,11 @@ class Demo(object):
 
     def inference(self, image):
         if os.path.isdir(image):
+            image = os.path.expanduser(image)
             file_list  = os.listdir(image)
             image_list = [os.path.join(image, i) for i in file_list if i.split('.')[-1].lower() in img_types]
         else:
-            image_list = [image]
+            image_list = [os.path.expanduser(image)]
         image_list.sort()
         text_list = []
         for image_path in image_list:

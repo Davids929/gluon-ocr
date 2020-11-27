@@ -75,8 +75,8 @@ def parse_args():
                         help='export model')
 
     args = parser.parse_args()
-    args.train_data_path = args.train_data_path.split(',')
-    args.val_data_path   = args.val_data_path.split(',')
+    args.train_data_path = [os.path.expanduser(path) for path in args.train_data_path.split(',')]
+    args.val_data_path   = [os.path.expanduser(path) for path in args.val_data_path.split(',')]
     return args
 
 args = parse_args()

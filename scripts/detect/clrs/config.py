@@ -3,7 +3,7 @@ import os
 import argparse
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='Train CLRS.')
+    parser = argparse.ArgumentParser(description='Train CLRS text detection networks.')
     parser.add_argument('--network', type=str, default='resnet',
                         help="Base network name which serves as feature extraction base.")
     parser.add_argument('--num-layers', type=int, default=50,

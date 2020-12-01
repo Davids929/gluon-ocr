@@ -162,10 +162,8 @@ class Trainer(object):
                 l_list = []
                 with mx.autograd.record():
                     for sd, sm, st, tl, tm in zip(src_data, src_mask, src_targ, tag_lab, tag_mask):
-                        with mx.autograd.pause():
-                            bs = tl.shape[0]
                         states = self.net.begin_state(bs, sd.context)
-                        outputs = self.net(sd, sm, st, *states)
+                        outputs = self.net(sd, sm, st)
                         loss = self.loss(outputs, tl, tm.expand_dims(axis=2))
                         l_list.append(loss)
                     mx.autograd.backward(l_list)
@@ -209,8 +207,7 @@ class Trainer(object):
             t_mask = data[4]
             bs, seq_len = t_label.shape
             targ_inp = self.net.begin_inp(bs, seq_len, self.ctx[0])
-            states = self.net.begin_state(bs, self.ctx[0])
-            out    = self.net(s_data, s_mask, targ_inp, *states)
+            out    = self.net(s_data, s_mask, targ_inp)
             self.acc_metric.update(out, t_label, t_mask)
         name, acc = self.acc_metric.get()
         self.acc_metric.reset()
